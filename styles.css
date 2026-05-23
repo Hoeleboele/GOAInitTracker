@@ -165,7 +165,13 @@ input[type=text]::placeholder { color: var(--muted); }
   color: var(--error);
 }
 .btn-danger:hover { background: rgba(244,67,54,0.20); }
-#app { height: 100vh; display: flex; flex-direction: column; }
+#app {
+  height: 100vh; display: flex; flex-direction: column;
+  background:
+    radial-gradient(ellipse at 5% 0%,   rgba(20,90,180,0.14) 0%, transparent 45%),
+    radial-gradient(ellipse at 95% 100%, rgba(180,70,10,0.12) 0%, transparent 45%),
+    var(--bg);
+}
 #appHeader {
   background: linear-gradient(90deg, #0A1A2C 0%, #091422 100%);
   border-bottom: 1px solid rgba(212,175,55,0.22);
@@ -194,10 +200,6 @@ input[type=text]::placeholder { color: var(--muted); }
   padding: 20px 16px;
   max-width: 500px; width: 100%;
   margin: 0 auto;
-  background:
-    radial-gradient(ellipse at 5% 0%,   rgba(20,90,180,0.12) 0%, transparent 40%),
-    radial-gradient(ellipse at 95% 100%, rgba(180,70,10,0.10) 0%, transparent 40%),
-    var(--bg);
 }
 .view { animation: fadeIn .18s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
