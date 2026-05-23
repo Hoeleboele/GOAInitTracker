@@ -12,14 +12,40 @@
     </button>
   </header>
 
-  <!-- Host: show session code -->
-  @if (state.isHost) {
-    <div class="code-section">
-      <app-session-code-display [code]="state.sessionCode" />
-    </div>
+  <!-- ── LOBBY ── -->
+  @if (state.gamePhase === 'lobby') {
+    @if (state.isHost) {
+      <div class="lobby-host">
+        <app-session-code-display [code]="state.sessionCode" />
+        <div class="players-section">
+          <app-player-list [players]="players" [currentPlayerId]="state.playerId" />
+        </div>
+        <div class="lobby-actions">
+          <button
+            class="start-btn"
+            [disabled]="players.length < 1"
+            (click)="onStartGame()"
+          >
+            Start Game →
+          </button>
+          <p class="start-hint">
+            {{ players.length < 2 ? 'Waiting for players to join...' : 'Ready to start!' }}
+          </p>
+        </div>
+      </div>
+    } @else {
+      <div class="lobby-player">
+        <div class="waiting-icon">⚓</div>
+        <h2>Waiting for host to start…</h2>
+        <p class="session-label">Session <strong>{{ state.sessionCode }}</strong></p>
+        <div class="players-section">
+          <app-player-list [players]="players" [currentPlayerId]="state.playerId" />
+        </div>
+      </div>
+    }
   }
 
-  <!-- Initiative Phase -->
+  <!-- ── INITIATIVE INPUT ── -->
   @if (state.gamePhase === 'initiative-input') {
     <div class="initiative-section">
       <h2 class="phase-title">Set Your Initiative</h2>
@@ -36,9 +62,12 @@
         }
       </div>
     </div>
+    <div class="players-section">
+      <app-player-list [players]="players" [currentPlayerId]="state.playerId" />
+    </div>
   }
 
-  <!-- Turn Display Phase -->
+  <!-- ── TURN DISPLAY / ROUND COMPLETE ── -->
   @if (state.gamePhase === 'turn-display' || state.gamePhase === 'round-complete') {
     <div class="turns-section">
       <app-turn-display
@@ -51,15 +80,10 @@
         (newRound)="onNewRound()"
       />
     </div>
+    <div class="players-section">
+      <app-player-list [players]="players" [currentPlayerId]="state.playerId" />
+    </div>
   }
-
-  <!-- Player List (always visible) -->
-  <div class="players-section">
-    <app-player-list
-      [players]="players"
-      [currentPlayerId]="state.playerId"
-    />
-  </div>
 
   <!-- Close/Leave Confirmation Dialog -->
   @if (showCloseConfirm) {

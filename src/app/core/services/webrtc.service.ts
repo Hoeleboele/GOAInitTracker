@@ -7,6 +7,7 @@ export interface PeerMessage {
     | 'player_initiative_updated'
     | 'initiative_locked'
     | 'state_sync'
+    | 'game_started'
     | 'turns_revealed'
     | 'turn_started'
     | 'turn_ended'

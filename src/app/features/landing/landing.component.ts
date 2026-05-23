@@ -63,8 +63,8 @@ export class LandingComponent {
       this.errorMsg = 'Please enter your name.';
       return;
     }
-    if (!this.joinCode.trim() || this.joinCode.length < 4) {
-      this.errorMsg = 'Please enter the 4-character session code.';
+    if (!this.joinCode.trim() || this.joinCode.length < 6) {
+      this.errorMsg = 'Please enter the 6-character session code.';
       return;
     }
     this.loading = true;

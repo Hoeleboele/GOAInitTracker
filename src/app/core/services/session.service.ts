@@ -38,7 +38,7 @@ export class SessionService {
       isHost: true,
       playerId,
       players,
-      gamePhase: 'initiative-input',
+      gamePhase: 'lobby',
       turns: [],
       currentTurnIndex: 0,
       connectionStatus: 'connected',
@@ -53,8 +53,8 @@ export class SessionService {
     playerName: string
   ): Promise<{ sessionCode: string; playerId: string }> {
     const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
-    if (normalized.length < 4) {
-      throw new Error('Please enter a valid 4-character session code.');
+    if (normalized.length < 6) {
+      throw new Error('Please enter a valid 6-character session code.');
     }
 
     // The code IS the host peer ID — connect directly, no lookup needed.
@@ -69,7 +69,7 @@ export class SessionService {
       isHost: false,
       playerId,
       players: new Map(),
-      gamePhase: 'initiative-input',
+      gamePhase: 'lobby',
       turns: [],
       currentTurnIndex: 0,
       connectionStatus: 'connected',
@@ -90,6 +90,11 @@ export class SessionService {
 
     this.listenForHostMessages();
     return { sessionCode: normalized, playerId };
+  }
+
+  startGame(): void {
+    this.stateService.updateState({ gamePhase: 'initiative-input' });
+    this.webRtcService.broadcastToPlayers({ type: 'game_started', payload: null });
   }
 
   closeSession(): void {
@@ -244,6 +249,10 @@ export class SessionService {
 
   private handlePlayerSideMessage(msg: PeerMessage): void {
     switch (msg.type) {
+      case 'game_started': {
+        this.stateService.updateState({ gamePhase: 'initiative-input' });
+        break;
+      }
       case 'state_sync': {
         const raw = msg.payload as Record<string, unknown>;
         const players = new Map<string, Player>(
@@ -307,7 +316,7 @@ export class SessionService {
   private generateCode(): string {
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // exclude ambiguous chars
     let code = '';
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 6; i++) {
       code += chars[Math.floor(Math.random() * chars.length)];
     }
     return code;

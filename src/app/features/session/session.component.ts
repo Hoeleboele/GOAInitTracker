@@ -108,6 +108,10 @@ export class SessionComponent implements OnInit, OnDestroy {
     this.sessionService.startNewRound();
   }
 
+  onStartGame(): void {
+    this.sessionService.startGame();
+  }
+
   confirmClose(): void {
     this.showCloseConfirm = true;
   }
