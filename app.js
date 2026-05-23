@@ -329,8 +329,7 @@
     });
     const sortedVals = Object.keys(byVal).map(Number).sort((a, b) => b - a);
 
-    // runningToken tracks the live token during order-building (not committed until turn completes)
-    let runningToken = state.initiativeToken;
+    let token = state.initiativeToken;
     const turns = [];
     let order = 1;
 
@@ -340,33 +339,18 @@
       const orange = group.filter(p => p.team === 'orange');
 
       if (blue.length === 0 || orange.length === 0) {
-        // Pure same-team (or unassigned)
-        const isExactly2SameTeam = group.length === 2;
-        if (isExactly2SameTeam) {
-          // Exactly 2 same-team: simultaneous slot
-          turns.push({
-            order:      order++,
-            players:    group.map(p => ({ id: p.id, name: p.name, team: p.team || '' })),
-            initiative: val,
-            status:     'pending',
-            doneIds:    [],
-          });
-        } else {
-          // 1 player OR 3+ same-team: individual turns, no token flip
-          for (const p of group) {
-            turns.push({
-              order:      order++,
-              players:    [{ id: p.id, name: p.name, team: p.team || '' }],
-              initiative: val,
-              status:     'pending',
-              doneIds:    [],
-            });
-          }
-        }
+        // Pure same-team or unassigned: one simultaneous slot
+        turns.push({
+          order:      order++,
+          players:    group.map(p => ({ id: p.id, name: p.name, team: p.team || '' })),
+          initiative: val,
+          status:     'pending',
+          doneIds:    [],
+        });
       } else {
-        // Mixed teams: interleave by token, flip after EVERY player's turn
+        // Mixed teams: alternate one at a time, token flips after EVERY player's turn
         const queues = { blue: [...blue], orange: [...orange] };
-        let t = runningToken;
+        let t = token;
         while (queues.blue.length > 0 || queues.orange.length > 0) {
           const other = t === 'blue' ? 'orange' : 'blue';
           if (queues[t].length > 0) {
@@ -377,14 +361,14 @@
               initiative: val,
               status:     'pending',
               doneIds:    [],
-              tokenAfter: other, // token flips when this turn completes
+              tokenAfter: other, // token always flips when this turn completes
             });
             t = other; // always flip
           } else {
-            t = other; // token team exhausted — switch without emitting a turn
+            t = other; // this team exhausted — switch without recording a flip
           }
         }
-        runningToken = t;
+        token = t;
       }
     }
 
@@ -392,7 +376,7 @@
     state.turns            = turns;
     state.currentTurnIndex = 0;
     state.phase            = 'turns';
-    // Do NOT pre-commit the final token — it advances step-by-step via advanceTurn
+    // Token stays as-is at reveal time — it updates step-by-step as tied turns complete
     broadcast({ type: 'turns_revealed',
       payload: { turns: state.turns, currentTurnIndex: 0, initiativeToken: state.initiativeToken } });
     render();
@@ -400,14 +384,13 @@
 
   function advanceTurn() {
     const cur  = state.currentTurnIndex;
-    const next = cur + 1;
 
-    // Apply token flip stored on the completed turn (if this was part of a tie)
-    const completedTurn = state.turns[cur];
-    if (completedTurn && completedTurn.tokenAfter !== undefined) {
-      state.initiativeToken = completedTurn.tokenAfter;
+    // Apply token flip recorded on the just-completed turn (mixed-team tie)
+    if (state.turns[cur] && state.turns[cur].tokenAfter !== undefined) {
+      state.initiativeToken = state.turns[cur].tokenAfter;
     }
 
+    const next = cur + 1;
     if (next >= state.turns.length) {
       startNewRound();
       return;
