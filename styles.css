@@ -348,3 +348,78 @@ input[type=text]::placeholder { color: var(--muted); }
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: rgba(91,163,208,0.3); border-radius: 3px; }
+
+/* ── Teams ── */
+.label { margin-top: 0; }
+
+.team-toggle {
+  display: flex; gap: 10px;
+  margin: 4px 0 8px;
+}
+
+.team-btn {
+  flex: 1;
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  padding: 11px 16px;
+  font-size: 15px; font-weight: 700;
+  background: var(--panel2);
+  color: var(--muted);
+  transition: all .15s;
+}
+
+.team-btn.team-blue.selected,
+.team-btn.team-blue:hover {
+  background: rgba(30,100,200,0.22);
+  border-color: #4488DD;
+  color: #88BBFF;
+}
+
+.team-btn.team-orange.selected,
+.team-btn.team-orange:hover {
+  background: rgba(200,90,23,0.22);
+  border-color: #CC6622;
+  color: #FFAA66;
+}
+
+/* ── Team dot (player list) ── */
+.team-dot {
+  display: inline-block;
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  margin-right: 6px;
+  flex-shrink: 0;
+  vertical-align: middle;
+  position: relative; top: -1px;
+}
+.team-dot.blue   { background: #4488DD; }
+.team-dot.orange { background: #CC6622; }
+
+/* ── Token banner ── */
+.token-banner {
+  border-radius: var(--radius);
+  padding: 9px 14px;
+  font-size: 13px; font-weight: 700;
+  text-align: center;
+  margin-bottom: 14px;
+}
+.token-banner.blue {
+  background: rgba(30,100,200,0.15);
+  border: 1px solid rgba(68,136,221,0.35);
+  color: #88BBFF;
+}
+.token-banner.orange {
+  background: rgba(200,90,23,0.15);
+  border: 1px solid rgba(204,102,34,0.35);
+  color: #FFAA66;
+}
+
+/* ── Team accent on turn rows ── */
+.turn-row.team-blue   { border-left: 3px solid #4488DD; }
+.turn-row.team-orange { border-left: 3px solid #CC6622; }
+
+/* ── Simultaneous turn wait label ── */
+.turn-wait {
+  font-size: 12px; color: var(--muted);
+  margin-top: 3px;
+}

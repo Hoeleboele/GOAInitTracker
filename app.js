@@ -10,12 +10,15 @@
   let sessionCode = '';
   let myId        = '';
   let myName      = '';
+  let myTeam      = '';         // 'blue' | 'orange'
+  let hostTokenChoice = 'blue'; // host only: which team starts with token
 
   let state = {
     phase:            'lobby',  // 'lobby'|'initiative'|'turns'|'round-complete'
     players:          {},       // { [id]: Player }
     turns:            [],
     currentTurnIndex: 0,
+    initiativeToken:  'blue',   // 'blue' | 'orange'
   };
 
   // initiative pad state
@@ -112,10 +115,15 @@
         $('btnLock').disabled = !initValue || initLocked;
         break;
 
-      case 'turns':
+      case 'turns': {
         show('viewTurns');
+        const tok = state.initiativeToken || 'blue';
+        const tb  = $('tokenBanner');
+        tb.className   = `token-banner ${tok}`;
+        tb.textContent = tok === 'blue' ? '🔵 Blue has the initiative token' : '🟠 Orange has the initiative token';
         renderTurnList('turnsList');
         break;
+      }
 
       case 'round-complete':
         show('viewRoundComplete');
@@ -143,10 +151,11 @@
         : p.submissionStatus === 'locked'    ? 'Locked ✓'
         : p.submissionStatus === 'submitted' ? 'Entered…'
         :                                      'Waiting…';
+      const teamDot = p.team ? `<span class="team-dot ${p.team}"></span>` : '';
       return `
         <div class="player-row${isMe ? ' is-me' : ''}">
           <span class="player-name">
-            ${esc(p.name)}${isMe ? '<span class="me-tag">(you)</span>' : ''}
+            ${teamDot}${esc(p.name)}${isMe ? '<span class="me-tag">(you)</span>' : ''}
           </span>
           <span class="pstatus ${statusClass}">${statusText}</span>
         </div>`;
@@ -157,26 +166,45 @@
     const el = $(containerId);
     if (!state.turns.length) { el.innerHTML = ''; return; }
 
-    el.innerHTML = state.turns.map((t, i) => {
-      const cls = t.status === 'active'    ? ' active'
-                : t.status === 'completed' ? ' completed' : '';
-      const badge = t.status === 'active'
-        ? '<span class="turn-badge">▶ Active</span>' : '';
+    el.innerHTML = state.turns.map(t => {
+      const cls     = t.status === 'active' ? ' active' : t.status === 'completed' ? ' completed' : '';
+      const players = t.players || [];
+      const isSimul = players.length > 1;
+      const teamCls = (!isSimul && players[0] && players[0].team) ? ` team-${players[0].team}` : '';
+      const names   = players.map(p => esc(p.name)).join(' & ');
+      const badge   = t.status === 'active' ? '<span class="turn-badge">▶ Active</span>' : '';
+      let waitInfo  = '';
+      if (t.status === 'active' && isSimul) {
+        const done = (t.doneIds || []).length;
+        waitInfo = `<div class="turn-wait">Simultaneous — ${done}/${players.length} ready</div>`;
+      }
       return `
-        <div class="turn-row${cls}">
+        <div class="turn-row${cls}${teamCls}">
           <div class="turn-order">${t.order}</div>
           <div class="turn-info">
-            <div class="turn-name">${esc(t.playerName)}</div>
-            <div class="turn-initiative">Initiative ${t.initiative}</div>
+            <div class="turn-name">${names}</div>
+            <div class="turn-initiative">Initiative ${t.initiative}${isSimul ? ' · Simultaneous' : ''}</div>
+            ${waitInfo}
           </div>
           ${badge}
         </div>`;
     }).join('');
 
     if (containerId === 'turnsList') {
-      const active = state.turns[state.currentTurnIndex];
-      const isMyTurn = active && active.playerId === myId;
-      $('turnActions').style.display = isMyTurn ? 'block' : 'none';
+      const active       = state.turns[state.currentTurnIndex];
+      const isMyTurn     = active && (active.players || []).some(p => p.id === myId);
+      const iAlreadyDone = active && (active.doneIds || []).includes(myId);
+      $('turnActions').style.display = (isMyTurn && !iAlreadyDone) ? 'block' : 'none';
+      const waitEl = $('turnWaiting');
+      if (isMyTurn && iAlreadyDone) {
+        const waiting = (active.players || [])
+          .filter(p => p.id !== myId && !(active.doneIds || []).includes(p.id))
+          .map(p => esc(p.name));
+        waitEl.textContent  = `Waiting for ${waiting.join(' & ')}…`;
+        waitEl.style.display = 'block';
+      } else {
+        waitEl.style.display = 'none';
+      }
     }
   }
 
@@ -237,11 +265,7 @@
 
   // ── End turn / new round ────────────────────────────────────────────────
   $('btnEndTurn').addEventListener('click', () => {
-    if (gameMode === 'host') {
-      advanceTurn();
-    } else {
-      sendToHost({ type: 'turn_ended', payload: { playerId: myId } });
-    }
+    sendToHost({ type: 'turn_ended', payload: { playerId: myId } });
   });
 
   $('btnNewRound').addEventListener('click', () => {
@@ -261,12 +285,13 @@
 
   function startGame() {
     state.phase = 'initiative';
+    state.initiativeToken = hostTokenChoice;
     Object.keys(state.players).forEach(id => {
       state.players[id] = { ...state.players[id],
         submissionStatus: 'not-submitted', initiative: undefined };
     });
     resetInitPad();
-    broadcast({ type: 'game_started', payload: null });
+    broadcast({ type: 'game_started', payload: { initiativeToken: hostTokenChoice } });
     render();
   }
 
@@ -287,38 +312,81 @@
 
   function revealTurns() {
     const connected = Object.values(state.players).filter(p => p.isConnected);
-    state.turns = connected
-      .sort((a, b) => (b.initiative || 0) - (a.initiative || 0))
-      .map((p, i) => ({
-        order:      i + 1,
-        playerId:   p.id,
-        playerName: p.name,
-        initiative: p.initiative || 0,
-        status:     i === 0 ? 'active' : 'pending',
-      }));
+
+    // Group players by initiative value
+    const byVal = {};
+    connected.forEach(p => {
+      const v = p.initiative || 0;
+      if (!byVal[v]) byVal[v] = [];
+      byVal[v].push(p);
+    });
+    const sortedVals = Object.keys(byVal).map(Number).sort((a, b) => b - a);
+
+    let token = state.initiativeToken;
+    const turns = [];
+    let order = 1;
+
+    for (const val of sortedVals) {
+      const group  = byVal[val];
+      const blue   = group.filter(p => p.team === 'blue');
+      const orange = group.filter(p => p.team === 'orange');
+
+      if (blue.length === 0 || orange.length === 0) {
+        // Pure same-team or unassigned: one simultaneous slot
+        turns.push({
+          order:      order++,
+          players:    group.map(p => ({ id: p.id, name: p.name, team: p.team || '' })),
+          initiative: val,
+          status:     'pending',
+          doneIds:    [],
+        });
+      } else {
+        // Mixed teams: interleave one at a time by token, flip on each hand-off
+        const queues = { blue: [...blue], orange: [...orange] };
+        let t = token;
+        while (queues.blue.length > 0 || queues.orange.length > 0) {
+          const other = t === 'blue' ? 'orange' : 'blue';
+          if (queues[t].length > 0) {
+            const p = queues[t].shift();
+            turns.push({
+              order:      order++,
+              players:    [{ id: p.id, name: p.name, team: p.team }],
+              initiative: val,
+              status:     'pending',
+              doneIds:    [],
+            });
+            if (queues[other].length > 0) t = other; // flip only when other team still has players
+          } else {
+            t = other; // drain last team without flipping
+          }
+        }
+        token = t;
+      }
+    }
+
+    if (turns.length > 0) turns[0].status = 'active';
+    state.turns            = turns;
     state.currentTurnIndex = 0;
-    state.phase = 'turns';
+    state.phase            = 'turns';
+    state.initiativeToken  = token;
     broadcast({ type: 'turns_revealed',
-      payload: { turns: state.turns, currentTurnIndex: 0 } });
+      payload: { turns: state.turns, currentTurnIndex: 0, initiativeToken: token } });
     render();
   }
 
   function advanceTurn() {
-    const next = state.currentTurnIndex + 1;
+    const cur  = state.currentTurnIndex;
+    const next = cur + 1;
     if (next >= state.turns.length) {
       startNewRound();
       return;
-    } else {
-      state.turns = state.turns.map((t, i) => ({
-        ...t,
-        status: i === state.currentTurnIndex ? 'completed'
-              : i === next                   ? 'active'
-              : t.status,
-      }));
-      state.currentTurnIndex = next;
-      broadcast({ type: 'turn_advanced',
-        payload: { turns: state.turns, currentTurnIndex: next } });
     }
+    state.turns[cur].status   = 'completed';
+    state.turns[next].status  = 'active';
+    state.turns[next].doneIds = [];
+    state.currentTurnIndex    = next;
+    broadcast({ type: 'turn_advanced',
+      payload: { turns: state.turns, currentTurnIndex: next } });
     render();
   }
 
@@ -341,6 +409,7 @@
       players:          state.players,
       turns:            state.turns,
       currentTurnIndex: state.currentTurnIndex,
+      initiativeToken:  state.initiativeToken,
     };
   }
 
@@ -384,7 +453,17 @@
         break;
       }
       case 'turn_ended': {
-        advanceTurn();
+        const { playerId } = msg.payload;
+        const turn = state.turns[state.currentTurnIndex];
+        if (!turn) break;
+        if (!turn.doneIds) turn.doneIds = [];
+        if (!turn.doneIds.includes(playerId)) turn.doneIds.push(playerId);
+        if (turn.doneIds.length >= (turn.players || []).length) {
+          advanceTurn();
+        } else {
+          broadcast({ type: 'state_sync', payload: serializeState() });
+          render();
+        }
         break;
       }
     }
@@ -395,6 +474,7 @@
 
       case 'game_started':
         state.phase = 'initiative';
+        state.initiativeToken = msg.payload.initiativeToken || 'blue';
         Object.keys(state.players).forEach(id => {
           state.players[id] = { ...state.players[id],
             submissionStatus: 'not-submitted', initiative: undefined };
@@ -408,6 +488,7 @@
         state.phase            = msg.payload.phase;
         state.turns            = msg.payload.turns || [];
         state.currentTurnIndex = msg.payload.currentTurnIndex || 0;
+        state.initiativeToken  = msg.payload.initiativeToken || state.initiativeToken;
         render();
         break;
 
@@ -415,6 +496,7 @@
         state.turns            = msg.payload.turns;
         state.currentTurnIndex = msg.payload.currentTurnIndex;
         state.phase            = 'turns';
+        state.initiativeToken  = msg.payload.initiativeToken || state.initiativeToken;
         render();
         break;
 
@@ -435,6 +517,7 @@
         state.players          = msg.payload.players;
         state.turns            = [];
         state.currentTurnIndex = 0;
+        state.initiativeToken  = msg.payload.initiativeToken || state.initiativeToken;
         resetInitPad();
         render();
         break;
@@ -477,12 +560,13 @@
         players: {
           [myId]: {
             id: myId, peerId: id,
-            name: myName,
+            name: myName, team: myTeam,
             submissionStatus: 'not-submitted',
             isConnected: true,
           },
         },
         turns: [], currentTurnIndex: 0,
+        initiativeToken: 'blue',
       };
       showApp();
       render();
@@ -519,7 +603,7 @@
         myName = ($('nameInput').value || 'Player').trim();
         sessionCode = code;
 
-        state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0 };
+        state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue' };
         showApp();
         render();
         setStatus('');
@@ -529,7 +613,7 @@
           type: 'player_joined',
           payload: {
             id: myId, peerId: peer.id,
-            name: myName,
+            name: myName, team: myTeam,
             submissionStatus: 'not-submitted',
             isConnected: true,
           },
@@ -570,8 +654,8 @@
     hostConn    = null;
     playerConns = {};
     gameMode    = null;
-    sessionCode = myId = myName = '';
-    state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0 };
+    sessionCode = myId = myName = myTeam = '';
+    state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue' };
     resetInitPad();
   }
 
@@ -583,6 +667,7 @@
       $('nameInput').placeholder = 'Enter your name first!';
       return;
     }
+    if (!myTeam) { toast('Select your team (Blue or Orange) first!'); return; }
     setStatus('Creating session…');
     tryHost(genCode());
   });
@@ -614,6 +699,12 @@
       $('nameInput').placeholder = 'Enter your name first!';
       return;
     }
+    if (!myTeam) {
+      $('joinForm').style.display    = 'none';
+      $('landingMain').style.display = 'flex';
+      toast('Select your team (Blue or Orange) first!');
+      return;
+    }
     const code = $('codeInput').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!code) { $('codeInput').focus(); return; }
     joinGame(code);
@@ -636,6 +727,29 @@
     }
     cleanup();
     showLanding();
+  });
+
+  // ── Team & token selection ────────────────────────────────────────────
+  $('btnTeamBlue').addEventListener('click', () => {
+    myTeam = 'blue';
+    $('btnTeamBlue').classList.add('selected');
+    $('btnTeamOrange').classList.remove('selected');
+  });
+  $('btnTeamOrange').addEventListener('click', () => {
+    myTeam = 'orange';
+    $('btnTeamOrange').classList.add('selected');
+    $('btnTeamBlue').classList.remove('selected');
+  });
+
+  $('btnTokenBlue').addEventListener('click', () => {
+    hostTokenChoice = 'blue';
+    $('btnTokenBlue').classList.add('selected');
+    $('btnTokenOrange').classList.remove('selected');
+  });
+  $('btnTokenOrange').addEventListener('click', () => {
+    hostTokenChoice = 'orange';
+    $('btnTokenOrange').classList.add('selected');
+    $('btnTokenBlue').classList.remove('selected');
   });
 
   // ── Boot ────────────────────────────────────────────────────────────────
