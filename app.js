@@ -25,6 +25,7 @@
   // initiative pad state
   let initValue  = '';
   let initLocked = false;
+  let lastNotifiedTurnIndex = -1; // tracks last turn we fired the notification for
 
   // ── DOM helpers ────────────────────────────────────────────────────────
   const $  = id  => document.getElementById(id);
@@ -170,6 +171,28 @@
     }).join('');
   }
 
+  // ── Turn notification (sound + vibration) ──────────────────────────────
+  function notifyMyTurn() {
+    // Double-beep using Web Audio API (no external files needed)
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.25].forEach(offset => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.3, ctx.currentTime + offset);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + offset + 0.18);
+        osc.start(ctx.currentTime + offset);
+        osc.stop(ctx.currentTime + offset + 0.18);
+      });
+    } catch (_) {}
+    // Haptic feedback on supported devices (Android Chrome)
+    if (navigator.vibrate) navigator.vibrate([150, 80, 150]);
+  }
+
   function renderTurnList(containerId) {
     const el = $(containerId);
     if (!state.turns.length) { el.innerHTML = ''; return; }
@@ -208,6 +231,11 @@
       const isMyTurn     = active && (active.players || []).some(p => p.id === myId);
       const iAlreadyDone = active && (active.doneIds || []).includes(myId);
       $('turnActions').style.display = (isMyTurn && !iAlreadyDone) ? 'block' : 'none';
+      // Notify once per turn when it first becomes this player's move
+      if (isMyTurn && !iAlreadyDone && state.currentTurnIndex !== lastNotifiedTurnIndex) {
+        lastNotifiedTurnIndex = state.currentTurnIndex;
+        notifyMyTurn();
+      }
       const waitEl = $('turnWaiting');
       if (isMyTurn && iAlreadyDone && !active.mixedTieSlot) {
         const waiting = (active.players || [])
