@@ -402,6 +402,7 @@ input[type=text]::placeholder { color: var(--muted); }
   font-size: 13px; font-weight: 700;
   text-align: center;
   margin-bottom: 14px;
+  margin-top: 2px;
 }
 .token-banner.blue {
   background: rgba(30,100,200,0.15);
@@ -415,8 +416,17 @@ input[type=text]::placeholder { color: var(--muted); }
 }
 
 /* ── Team accent on turn rows ── */
-.turn-row.team-blue   { border-left: 3px solid #4488DD; }
-.turn-row.team-orange { border-left: 3px solid #CC6622; }
+.turn-row.team-blue {
+  border-left: 4px solid #5599EE;
+  background: rgba(50,120,220,0.09);
+}
+.turn-row.team-orange {
+  border-left: 4px solid #DD7733;
+  background: rgba(220,100,40,0.09);
+}
+/* Keep team left border colour even when the row is active */
+.turn-row.active.team-blue   { border-color: var(--gold); border-left-color: #5599EE; }
+.turn-row.active.team-orange { border-color: var(--gold); border-left-color: #DD7733; }
 
 /* ── Simultaneous turn wait label ── */
 .turn-wait {

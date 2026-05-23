@@ -89,6 +89,17 @@
     const players = Object.values(state.players);
     $('btnLeave').textContent = gameMode === 'host' ? 'Close' : 'Leave';
 
+    // Token banner — visible whenever a game is in progress
+    const tb  = $('tokenBanner');
+    const tok = state.initiativeToken || 'blue';
+    if (state.phase !== 'lobby') {
+      tb.className   = `token-banner ${tok}`;
+      tb.textContent = tok === 'blue' ? '🔵 Blue has the initiative token' : '🟠 Orange has the initiative token';
+      tb.style.display = 'block';
+    } else {
+      tb.style.display = 'none';
+    }
+
     switch (state.phase) {
 
       case 'lobby':
@@ -117,10 +128,6 @@
 
       case 'turns': {
         show('viewTurns');
-        const tok = state.initiativeToken || 'blue';
-        const tb  = $('tokenBanner');
-        tb.className   = `token-banner ${tok}`;
-        tb.textContent = tok === 'blue' ? '🔵 Blue has the initiative token' : '🟠 Orange has the initiative token';
         renderTurnList('turnsList');
         break;
       }
@@ -573,6 +580,8 @@
       setStatus('');
     });
 
+    peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); });
+
     peer.on('error', err => {
       if (err.type === 'unavailable-id') {
         tryHost(genCode());
@@ -634,6 +643,8 @@
         toast('Connection to host lost.');
       });
     });
+
+    peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); });
 
     peer.on('error', err => {
       clearTimeout(joinTimeout);
