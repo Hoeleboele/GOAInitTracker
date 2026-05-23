@@ -15,7 +15,9 @@ export class SessionService {
     // Generate code first and register PeerJS with it as the peer ID.
     // This way players can connect using just the code — no lookup needed.
     const sessionCode = this.generateCode();
-    await this.webRtcService.createHostPeer(sessionCode);
+    // Pass the code as the PeerJS peer ID. If already taken, the WebRTC service
+    // automatically retries with a new code and resolves with the actual registered ID.
+    const registeredId = await this.webRtcService.createHostPeer(sessionCode);
 
     const sessionId = this.generateId();
     const playerId = this.generateId();
@@ -34,7 +36,7 @@ export class SessionService {
 
     this.stateService.updateState({
       sessionId,
-      sessionCode,
+      sessionCode: registeredId,
       isHost: true,
       playerId,
       players,
@@ -52,7 +54,7 @@ export class SessionService {
     code: string,
     playerName: string
   ): Promise<{ sessionCode: string; playerId: string }> {
-    const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 6);
     if (!normalized) {
       throw new Error('Please enter a session code.');
     }

@@ -60,7 +60,15 @@ export class WebRtcService implements OnDestroy {
         });
 
         this.peer.on('error', (err: unknown) => {
-          reject(err);
+          const peerErr = err as { type?: string };
+          if (peerErr?.type === 'unavailable-id' && peerId) {
+            // Code already taken — destroy and retry with a new random code
+            this.peer?.destroy();
+            this.peer = null;
+            this.createHostPeer().then(resolve).catch(reject);
+          } else {
+            reject(err);
+          }
         });
 
         this.peer.on('connection', (conn: unknown) => {
@@ -81,6 +89,21 @@ export class WebRtcService implements OnDestroy {
 
   joinSession(hostPeerId: string): Promise<void> {
     return new Promise((resolve, reject) => {
+      let settled = false;
+      const fail = (msg: string) => {
+        if (settled) return;
+        settled = true;
+        this.peer?.destroy();
+        this.peer = null;
+        reject(new Error(msg));
+      };
+
+      // 10-second timeout in case the peer ID doesn't exist
+      const timeout = setTimeout(
+        () => fail('Connection timed out — check the code and try again.'),
+        10000
+      );
+
       try {
         this.peer = new Peer();
 
@@ -89,13 +112,16 @@ export class WebRtcService implements OnDestroy {
           this.hostConnection = conn;
 
           conn.on('open', () => {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timeout);
             this._connectionEvents$.next({ type: 'open', peerId: hostPeerId });
             resolve();
           });
 
-          conn.on('error', (err: unknown) => {
-            this._connectionEvents$.next({ type: 'error', peerId: hostPeerId });
-            reject(err);
+          conn.on('error', () => {
+            clearTimeout(timeout);
+            fail('Could not connect — check the code and try again.');
           });
 
           conn.on('close', () => {
@@ -108,9 +134,12 @@ export class WebRtcService implements OnDestroy {
         });
 
         this.peer.on('error', (err: unknown) => {
-          reject(err);
+          clearTimeout(timeout);
+          const msg = (err as { message?: string })?.message ?? 'Network error';
+          fail(msg);
         });
       } catch (e) {
+        clearTimeout(timeout);
         reject(e);
       }
     });

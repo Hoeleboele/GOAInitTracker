@@ -69,7 +69,7 @@
             maxlength="6"
             autocomplete="off"
             class="code-input"
-            (input)="joinCode = joinCode.toUpperCase().replace(' ', '')"
+            (input)="joinCode = joinCode.toUpperCase()"
           />
         </div>
         @if (errorMsg) {
