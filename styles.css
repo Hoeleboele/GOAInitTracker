@@ -137,11 +137,11 @@ input[type=text]::placeholder { color: var(--muted); }
 .btn-ghost {
   background: transparent;
   border: 1px solid var(--line);
-  color: var(--muted);
+  color: var(--text);
   font-size: 14px;
   padding: 8px 12px;
 }
-.btn-ghost:hover { color: var(--text); border-color: var(--cyan); }
+.btn-ghost:hover { border-color: var(--cyan); }
 
 .btn-sm     { padding: 6px 14px; font-size: 13px; border-radius: 8px; }
 .btn-large  { width: 100%; padding: 16px; font-size: 17px; border-radius: 12px; }
