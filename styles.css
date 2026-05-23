@@ -436,3 +436,31 @@ input[type=text]::placeholder { color: var(--muted); }
 
 /* ── Mixed-tie "vs" separator ── */
 .tie-vs { color: var(--muted); font-size: 11px; margin: 0 5px; }
+
+/* ── Offline Setup ── */
+.offline-player-row {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+}
+.offline-name-input {
+  flex: 1; background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+  padding: 8px 12px; color: var(--text); font-size: 15px;
+  font-family: inherit; outline: none;
+}
+.offline-name-input:focus { border-color: var(--gold); }
+.offline-team-toggle { display: flex; gap: 4px; }
+.offline-team-btn {
+  width: 36px; height: 36px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  cursor: pointer; font-size: 18px;
+  opacity: 0.3; transition: opacity 0.15s, border-color 0.15s;
+}
+.offline-team-btn.active { opacity: 1; border-color: rgba(255,255,255,0.45); }
+.btn-remove-offline {
+  background: none; border: none; color: var(--muted);
+  cursor: pointer; font-size: 18px; padding: 4px 6px;
+  border-radius: 6px; line-height: 1;
+}
+.btn-remove-offline:hover { color: var(--text); }
+.badge-offline { background: rgba(150,100,30,0.25); color: var(--gold); border-color: var(--gold-dark); }

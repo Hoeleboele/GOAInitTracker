@@ -27,6 +27,11 @@
   let initLocked = false;
   let lastNotifiedTurnIndex = -1; // tracks last turn we fired the notification for
 
+  // ── Offline mode state ───────────────────────────────────────
+  let offlinePlayers     = [];     // [{ id, name, team, initiative }]
+  let offlineInitIdx     = 0;      // which player is currently entering initiative
+  let offlineTokenChoice = 'blue';
+
   // ── DOM helpers ────────────────────────────────────────────────────────
   const $  = id  => document.getElementById(id);
   const $$ = sel => document.querySelector(sel);
@@ -81,7 +86,7 @@
     $('app').style.display     = 'flex';
   }
 
-  const VIEWS = ['viewLobbyHost','viewLobbyPlayer','viewInitiative','viewTurns','viewRoundComplete'];
+  const VIEWS = ['viewOfflineSetup','viewLobbyHost','viewLobbyPlayer','viewInitiative','viewTurns','viewRoundComplete'];
   function show(id) {
     VIEWS.forEach(v => $(v).style.display = v === id ? 'block' : 'none');
   }
@@ -89,12 +94,12 @@
   // ── Render ──────────────────────────────────────────────────────────────
   function render() {
     const players = Object.values(state.players);
-    $('btnLeave').textContent = gameMode === 'host' ? 'Close' : 'Leave';
+    $('btnLeave').textContent = gameMode === 'offline' ? 'Quit' : gameMode === 'host' ? 'Close' : 'Leave';
 
     // Token banner — visible whenever a game is in progress
     const tb  = $('tokenBanner');
     const tok = state.initiativeToken || 'blue';
-    if (state.phase !== 'lobby') {
+    if (state.phase !== 'lobby' && state.phase !== 'offline-setup') {
       tb.className   = `token-banner ${tok}`;
       tb.textContent = tok === 'blue' ? '🔵 Blue has the initiative token' : '🟠 Orange has the initiative token';
       tb.style.display = 'block';
@@ -103,6 +108,11 @@
     }
 
     switch (state.phase) {
+
+      case 'offline-setup':
+        show('viewOfflineSetup');
+        renderOfflineSetup();
+        break;
 
       case 'lobby':
         if (gameMode === 'host') {
@@ -124,8 +134,19 @@
       case 'initiative':
         show('viewInitiative');
         $('initiativeDisplay').textContent = initValue || '—';
-        renderPlayers('initiativePlayers', players);
         $('btnLock').disabled = !initValue || initLocked;
+        if (gameMode === 'offline') {
+          const op = offlinePlayers[offlineInitIdx];
+          $('offlineInitFor').innerHTML = op
+            ? `<span class="team-dot ${op.team}"></span> <strong>${esc(op.name)}</strong>  ·  <span style="font-size:13px">${offlineInitIdx + 1} / ${offlinePlayers.length}</span>`
+            : '';
+          $('offlineInitFor').style.display = 'block';
+          $('initiativePlayers').style.display = 'none';
+        } else {
+          $('offlineInitFor').style.display = 'none';
+          $('initiativePlayers').style.display = '';
+          renderPlayers('initiativePlayers', players);
+        }
         break;
 
       case 'turns': {
@@ -137,8 +158,8 @@
       case 'round-complete':
         show('viewRoundComplete');
         renderTurnList('roundSummary');
-        $('btnNewRound').style.display    = gameMode === 'host' ? 'block' : 'none';
-        $('newRoundHint').style.display   = gameMode === 'host' ? 'none'  : 'block';
+        $('btnNewRound').style.display  = (gameMode === 'host' || gameMode === 'offline') ? 'block' : 'none';
+        $('newRoundHint').style.display = (gameMode === 'host' || gameMode === 'offline') ? 'none'  : 'block';
         break;
     }
   }
@@ -245,11 +266,20 @@
 
     if (containerId === 'turnsList') {
       const active       = state.turns[state.currentTurnIndex];
-      const isMyTurn     = active && (active.players || []).some(p => p.id === myId);
-      const iAlreadyDone = active && (active.doneIds || []).includes(myId);
+      const isMyTurn     = gameMode === 'offline'
+        ? !!active
+        : active && (active.players || []).some(p => p.id === myId);
+      const iAlreadyDone = gameMode !== 'offline' && active && (active.doneIds || []).includes(myId);
+      // Update End Turn button label
+      const btn = $('btnEndTurn');
+      if (gameMode === 'offline' && active && active.mixedTieSlot) {
+        btn.textContent = `End ${active.teamTurn === 'blue' ? '🔵 Blue' : '🟠 Orange'} Team’s Turn`;
+      } else {
+        btn.textContent = gameMode === 'offline' ? 'End Turn' : 'End My Turn';
+      }
       $('turnActions').style.display = (isMyTurn && !iAlreadyDone) ? 'block' : 'none';
-      // Notify once per turn when it first becomes this player's move
-      if (isMyTurn && !iAlreadyDone && state.currentTurnIndex !== lastNotifiedTurnIndex) {
+      // Notify once per turn when it first becomes this player’s move (skip in offline)
+      if (gameMode !== 'offline' && isMyTurn && !iAlreadyDone && state.currentTurnIndex !== lastNotifiedTurnIndex) {
         lastNotifiedTurnIndex = state.currentTurnIndex;
         notifyMyTurn();
       }
@@ -264,6 +294,55 @@
         waitEl.style.display = 'none';
       }
     }
+  }
+
+  // ── Offline Setup Renderer ──────────────────────────────────────────────
+  function renderOfflineSetup() {
+    const list = $('offlinePlayerList');
+    list.innerHTML = offlinePlayers.map((p, i) => `
+      <div class="offline-player-row">
+        <input class="offline-name-input" type="text" value="${esc(p.name)}" maxlength="20"
+               placeholder="Player ${i + 1}" data-idx="${i}" autocomplete="off" />
+        <div class="offline-team-toggle">
+          <button class="offline-team-btn${p.team === 'blue'   ? ' active' : ''}" data-idx="${i}" data-team="blue">🔵</button>
+          <button class="offline-team-btn${p.team === 'orange' ? ' active' : ''}" data-idx="${i}" data-team="orange">🟠</button>
+        </div>
+        <button class="btn-remove-offline" data-idx="${i}" title="Remove">&#x2715;</button>
+      </div>
+    `).join('');
+    list.querySelectorAll('.offline-name-input').forEach(inp =>
+      inp.addEventListener('input', e => { offlinePlayers[+e.target.dataset.idx].name = e.target.value; })
+    );
+    list.querySelectorAll('.offline-team-btn').forEach(btn =>
+      btn.addEventListener('click', e => {
+        offlinePlayers[+e.target.dataset.idx].team = e.target.dataset.team;
+        renderOfflineSetup();
+      })
+    );
+    list.querySelectorAll('.btn-remove-offline').forEach(btn =>
+      btn.addEventListener('click', e => {
+        offlinePlayers.splice(+e.target.dataset.idx, 1);
+        renderOfflineSetup();
+      })
+    );
+  }
+
+  // ── Offline turn advancement ────────────────────────────────────────────
+  function endTurnOffline() {
+    const turn = state.turns[state.currentTurnIndex];
+    if (!turn) return;
+    if (!turn.doneIds) turn.doneIds = [];
+    if (turn.mixedTieSlot) {
+      // One manager click = one team slot; auto-pick the first candidate
+      const first = (turn.players || [])[0];
+      if (first && !turn.doneIds.includes(first.id)) turn.doneIds.push(first.id);
+    } else {
+      // Mark all players done (simultaneous = single click in offline)
+      (turn.players || []).forEach(p => {
+        if (!turn.doneIds.includes(p.id)) turn.doneIds.push(p.id);
+      });
+    }
+    advanceTurn();
   }
 
   // ── Initiative pad ──────────────────────────────────────────────────────
@@ -295,6 +374,27 @@
     if (!initValue || initLocked) return;
     initLocked = true;
     document.querySelectorAll('.pad-btn').forEach(b => b.disabled = true);
+
+    if (gameMode === 'offline') {
+      // Store initiative for current offline player and advance
+      offlinePlayers[offlineInitIdx].initiative = +initValue;
+      offlineInitIdx++;
+      if (offlineInitIdx >= offlinePlayers.length) {
+        // All done — populate state.players and reveal turns
+        state.players = {};
+        offlinePlayers.forEach(p => {
+          state.players[p.id] = {
+            id: p.id, peerId: p.id, name: p.name, team: p.team,
+            initiative: p.initiative, submissionStatus: 'locked', isConnected: true,
+          };
+        });
+        revealTurns();
+      } else {
+        resetInitPad();
+        render();
+      }
+      return;
+    }
     $('btnLock').style.display = 'none';
     $('btnEdit').style.display = 'block';
     $('lockStatus').textContent = '✓ Locked in — waiting for others';
@@ -323,11 +423,12 @@
 
   // ── End turn / new round ────────────────────────────────────────────────
   $('btnEndTurn').addEventListener('click', () => {
+    if (gameMode === 'offline') { endTurnOffline(); return; }
     sendToHost({ type: 'turn_ended', payload: { playerId: myId } });
   });
 
   $('btnNewRound').addEventListener('click', () => {
-    if (gameMode === 'host') startNewRound();
+    if (gameMode === 'host' || gameMode === 'offline') startNewRound();
   });
 
   // ── Host game logic ─────────────────────────────────────────────────────
@@ -497,6 +598,13 @@
     state.turns = [];
     state.currentTurnIndex = 0;
     state.mixedTies = {};
+    if (gameMode === 'offline') {
+      offlinePlayers.forEach(p => { p.initiative = undefined; });
+      offlineInitIdx = 0;
+      resetInitPad();
+      render();
+      return;
+    }
     Object.keys(state.players).forEach(id => {
       state.players[id] = { ...state.players[id],
         submissionStatus: 'not-submitted', initiative: undefined };
@@ -773,7 +881,10 @@
     playerConns = {};
     gameMode    = null;
     sessionCode = myId = myName = myTeam = '';
-    state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue' };
+    offlinePlayers     = [];
+    offlineInitIdx     = 0;
+    offlineTokenChoice = 'blue';
+    state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {} };
     resetInitPad();
   }
 
@@ -794,6 +905,48 @@
     $('landingMain').style.display = 'none';
     $('joinForm').style.display    = 'flex';
     $('codeInput').focus();
+  });
+
+  $('btnOffline').addEventListener('click', () => {
+    gameMode           = 'offline';
+    myId               = genId();
+    offlineTokenChoice = 'blue';
+    offlinePlayers     = [
+      { id: genId(), name: '', team: 'blue'   },
+      { id: genId(), name: '', team: 'orange' },
+    ];
+    offlineInitIdx = 0;
+    state = { phase: 'offline-setup', players: {}, turns: [], currentTurnIndex: 0,
+              initiativeToken: 'blue', mixedTies: {} };
+    $('statusBadge').textContent = 'offline';
+    $('statusBadge').className   = 'badge badge-offline';
+    showApp();
+    render();
+  });
+
+  $('btnAddOfflinePlayer').addEventListener('click', () => {
+    offlinePlayers.push({ id: genId(), name: '', team: 'blue' });
+    renderOfflineSetup();
+  });
+  $('btnOfflineTokenBlue').addEventListener('click', () => {
+    offlineTokenChoice = 'blue';
+    $('btnOfflineTokenBlue').classList.add('selected');
+    $('btnOfflineTokenOrange').classList.remove('selected');
+  });
+  $('btnOfflineTokenOrange').addEventListener('click', () => {
+    offlineTokenChoice = 'orange';
+    $('btnOfflineTokenOrange').classList.add('selected');
+    $('btnOfflineTokenBlue').classList.remove('selected');
+  });
+  $('btnStartOffline').addEventListener('click', () => {
+    offlinePlayers = offlinePlayers.filter(p => p.name.trim());
+    if (offlinePlayers.length < 1) { toast('Add at least one player first!'); return; }
+    offlinePlayers.forEach(p => { p.initiative = undefined; });
+    offlineInitIdx = 0;
+    state.initiativeToken = offlineTokenChoice;
+    state.phase = 'initiative';
+    resetInitPad();
+    render();
   });
 
   $('btnCancelJoin').addEventListener('click', () => {

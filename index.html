@@ -27,6 +27,7 @@
 
         <button class="btn btn-primary" id="btnHost">Host Session</button>
         <button class="btn btn-secondary" id="btnShowJoin">Join Session</button>
+        <button class="btn btn-ghost" id="btnOffline">Play Offline</button>
       </div>
 
       <div id="joinForm" style="display:none;">
@@ -54,6 +55,22 @@
 
     <main id="appMain">
       <div id="tokenBanner" class="token-banner blue" style="display:none;"></div>
+
+      <!-- Offline Setup -->
+      <div id="viewOfflineSetup" class="view" style="display:none;">
+        <h2 class="phase-title">Offline Setup</h2>
+        <div class="label" style="margin-bottom:10px;">Players <span style="font-weight:400;color:var(--muted);font-size:12px;">(you’ll enter their initiatives in this order)</span></div>
+        <div id="offlinePlayerList"></div>
+        <button class="btn btn-sm" id="btnAddOfflinePlayer" type="button" style="margin-top:8px;">+ Add Player</button>
+
+        <div class="label" style="margin-top:24px;">Initiative token starts with</div>
+        <div class="team-toggle">
+          <button class="team-btn team-blue selected" id="btnOfflineTokenBlue" type="button">🔵 Blue</button>
+          <button class="team-btn team-orange" id="btnOfflineTokenOrange" type="button">🟠 Orange</button>
+        </div>
+
+        <button class="btn btn-primary btn-large" id="btnStartOffline" style="margin-top:28px;">Enter Initiatives →</button>
+      </div>
 
       <!-- Lobby – Host -->
       <div id="viewLobbyHost" class="view" style="display:none;">
@@ -86,7 +103,8 @@
 
       <!-- Initiative Input -->
       <div id="viewInitiative" class="view" style="display:none;">
-        <h2 class="phase-title">Set Your Initiative</h2>
+        <h2 class="phase-title">Set Initiative</h2>
+        <p id="offlineInitFor" style="display:none;text-align:center;margin:-8px 0 14px;font-size:15px;color:var(--muted);"></p>
         <div id="initiativeDisplay" class="number-display">—</div>
 
         <div class="number-pad">
