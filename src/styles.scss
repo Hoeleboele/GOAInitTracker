@@ -1,0 +1,56 @@
+// ── Guards of Atlantis II – Global Styles ──────────────────────────────────
+
+// Color palette (box art inspired)
+$gold:         #D4AF37;
+$gold-dark:    #B8860B;
+$orange-rust:  #C85A17;
+$orange-light: #E8873D;
+$ocean-blue:   #0F3B66;
+$cyan-bright:  #5BA3D0;
+$cyan-light:   #7BB5D9;
+$off-white:    #F5F5F1;
+$dark-shadow:  #0A1F2E;
+$success:      #4CAF50;
+$error:        #F44336;
+$info:         #2196F3;
+
+// Reset & base
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: $off-white;
+  background: $dark-shadow;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overscroll-behavior: none;
+}
+
+h1, h2, h3, h4 {
+  margin: 0;
+  font-weight: 700;
+  color: $off-white;
+}
+
+button {
+  font-family: inherit;
+}
+
+input, textarea {
+  font-family: inherit;
+}
+
+a {
+  color: $cyan-bright;
+  text-decoration: none;
+}
+
+// Scrollbar styling
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: rgba(15, 59, 102, 0.2); }
+::-webkit-scrollbar-thumb { background: rgba(91, 163, 208, 0.4); border-radius: 3px; }

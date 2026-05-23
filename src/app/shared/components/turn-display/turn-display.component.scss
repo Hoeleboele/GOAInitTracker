@@ -1,0 +1,186 @@
+.turn-display {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+
+  .round-complete {
+    text-align: center;
+    padding: 32px 16px;
+
+    .complete-icon {
+      font-size: 56px;
+      margin-bottom: 12px;
+    }
+
+    h2 {
+      font-size: 28px;
+      font-weight: 700;
+      color: #d4af37;
+      margin: 0 0 8px;
+    }
+
+    p {
+      color: #7bb5d9;
+      margin-bottom: 24px;
+    }
+
+    .waiting-text {
+      font-style: italic;
+      color: #5ba3d0;
+    }
+
+    .new-round-btn {
+      padding: 16px 40px;
+      background: linear-gradient(135deg, #c85a17, #e8873d);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      font-size: 18px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 16px rgba(200, 90, 23, 0.4);
+      }
+    }
+  }
+
+  .active-turn {
+    background: rgba(15, 59, 102, 0.6);
+    border: 2px solid #5ba3d0;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: border-color 0.3s;
+
+    &.my-turn {
+      border-color: #d4af37;
+      box-shadow: 0 0 20px rgba(212, 175, 55, 0.3);
+    }
+
+    .turn-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+
+      .your-turn-badge {
+        background: #d4af37;
+        color: #0a1f2e;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 1.5px;
+      }
+
+      .turn-number {
+        font-size: 13px;
+        color: #7bb5d9;
+      }
+    }
+
+    .active-player {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+
+      .player-name {
+        font-size: 24px;
+        font-weight: 700;
+        color: #f5f5f1;
+      }
+
+      .initiative-badge {
+        background: rgba(212, 175, 55, 0.2);
+        border: 1px solid #d4af37;
+        color: #d4af37;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 16px;
+        font-weight: 600;
+      }
+    }
+
+    .end-turn-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #c85a17, #e8873d);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(200, 90, 23, 0.4);
+      }
+    }
+  }
+
+  .turn-list {
+    .list-title {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #7bb5d9;
+      margin-bottom: 8px;
+    }
+
+    .turn-item {
+      display: grid;
+      grid-template-columns: 28px 1fr auto 24px;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      margin-bottom: 6px;
+      background: rgba(15, 59, 102, 0.3);
+      color: #7bb5d9;
+      transition: all 0.2s;
+
+      &.active {
+        background: rgba(91, 163, 208, 0.2);
+        color: #f5f5f1;
+        border: 1px solid #5ba3d0;
+      }
+
+      &.completed {
+        opacity: 0.45;
+        text-decoration: line-through;
+      }
+
+      &.mine {
+        .name { color: #d4af37; font-weight: 600; }
+      }
+
+      .order {
+        font-size: 13px;
+        color: #5ba3d0;
+        font-weight: 700;
+      }
+
+      .name {
+        font-size: 16px;
+        font-weight: 500;
+      }
+
+      .initiative {
+        font-size: 15px;
+        font-weight: 700;
+        color: #d4af37;
+      }
+
+      .status-icon {
+        font-size: 14px;
+        color: #5ba3d0;
+      }
+    }
+  }
+}

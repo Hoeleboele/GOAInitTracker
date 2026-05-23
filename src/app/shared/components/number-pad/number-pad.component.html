@@ -1,0 +1,40 @@
+<div class="number-pad">
+  <div class="display">
+    <span class="display-value">{{ value || '—' }}</span>
+    <span class="display-label">Initiative</span>
+  </div>
+
+  <div class="buttons-grid">
+    @for (digit of digits; track digit; let i = $index) {
+      @if (i === 9) {
+        <div class="pad-spacer"></div>
+      }
+      <button
+        class="pad-btn digit-btn"
+        [disabled]="isLocked"
+        (click)="pressDigit(digit)"
+      >{{ digit }}</button>
+      @if (i === 9) {
+        <button class="pad-btn backspace-btn" [disabled]="isLocked || !value" (click)="backspace()">
+          ⌫
+        </button>
+      }
+    }
+  </div>
+
+  <div class="action-row">
+    @if (!isLocked) {
+      <button
+        class="action-btn lock-btn"
+        [disabled]="!value"
+        (click)="lock()"
+      >
+        🔒 Lock In
+      </button>
+    } @else {
+      <button class="action-btn unlock-btn" (click)="unlock()">
+        🔓 Change
+      </button>
+    }
+  </div>
+</div>

@@ -1,0 +1,54 @@
+<div class="turn-display">
+  @if (gamePhase === 'round-complete') {
+    <div class="round-complete">
+      <div class="complete-icon">⚔️</div>
+      <h2>Round Complete!</h2>
+      <p>All players have taken their turn.</p>
+      @if (isHost) {
+        <button class="new-round-btn" (click)="newRound.emit()">Start New Round</button>
+      } @else {
+        <p class="waiting-text">Waiting for host to start new round...</p>
+      }
+    </div>
+  } @else {
+    @if (activeTurn) {
+      <div class="active-turn" [class.my-turn]="isMyTurn">
+        <div class="turn-header">
+          @if (isMyTurn) {
+            <span class="your-turn-badge">YOUR TURN</span>
+          }
+          <span class="turn-number">Turn {{ currentTurnIndex + 1 }} of {{ turns.length }}</span>
+        </div>
+        <div class="active-player">
+          <span class="player-name">{{ activeTurn.playerName }}</span>
+          <span class="initiative-badge">⚡ {{ activeTurn.initiative }}</span>
+        </div>
+        @if (canEndTurn) {
+          <button class="end-turn-btn" (click)="endTurn.emit()">
+            End Turn →
+          </button>
+        }
+      </div>
+    }
+
+    <div class="turn-list">
+      <h3 class="list-title">Turn Order</h3>
+      @for (turn of turns; track turn.order) {
+        <div
+          class="turn-item"
+          [class.active]="turn.status === 'active'"
+          [class.completed]="turn.status === 'completed'"
+          [class.mine]="turn.playerId === currentPlayerId"
+        >
+          <span class="order">{{ turn.order }}</span>
+          <span class="name">{{ turn.playerName }}</span>
+          <span class="initiative">{{ turn.initiative }}</span>
+          <span class="status-icon">
+            @if (turn.status === 'active') { ▶ }
+            @else if (turn.status === 'completed') { ✓ }
+          </span>
+        </div>
+      }
+    </div>
+  }
+</div>

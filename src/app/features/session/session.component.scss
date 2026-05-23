@@ -1,0 +1,164 @@
+.session-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, #0a1f2e 0%, #0f3b66 60%, #0a1f2e 100%);
+  color: #f5f5f1;
+  padding-bottom: 32px;
+
+  .session-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px;
+    background: rgba(10, 31, 46, 0.8);
+    border-bottom: 1px solid rgba(212, 175, 55, 0.3);
+    position: sticky;
+    top: 0;
+    z-index: 10;
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .game-name {
+        font-size: 15px;
+        font-weight: 700;
+        color: #d4af37;
+      }
+
+      .connection-badge {
+        font-size: 10px;
+        padding: 3px 8px;
+        border-radius: 10px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+
+        &.conn-connected { background: rgba(76,175,80,.2); color: #4caf50; }
+        &.conn-disconnected { background: rgba(244,67,54,.2); color: #f44336; }
+        &.conn-reconnecting { background: rgba(255,152,0,.2); color: #ff9800; }
+      }
+    }
+
+    .close-btn {
+      background: rgba(244, 67, 54, 0.15);
+      border: 1px solid rgba(244, 67, 54, 0.4);
+      color: #f44336;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background: rgba(244, 67, 54, 0.25);
+      }
+    }
+  }
+
+  .code-section {
+    padding: 16px;
+  }
+
+  .initiative-section {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    .phase-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #d4af37;
+      margin: 0 0 20px;
+      text-align: center;
+    }
+
+    .waiting-status {
+      margin-top: 12px;
+      min-height: 24px;
+      text-align: center;
+
+      .locked-msg {
+        color: #4caf50;
+        font-size: 14px;
+        font-weight: 600;
+      }
+    }
+  }
+
+  .turns-section {
+    padding: 16px;
+  }
+
+  .players-section {
+    padding: 0 16px;
+    margin-top: 8px;
+  }
+
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 31, 46, 0.85);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 24px;
+
+    .dialog {
+      background: #0f3b66;
+      border: 1px solid rgba(212, 175, 55, 0.4);
+      border-radius: 16px;
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 360px;
+      text-align: center;
+
+      h3 {
+        font-size: 20px;
+        font-weight: 700;
+        color: #f5f5f1;
+        margin: 0 0 10px;
+      }
+
+      p {
+        color: #7bb5d9;
+        font-size: 14px;
+        margin-bottom: 24px;
+      }
+
+      .dialog-actions {
+        display: flex;
+        gap: 12px;
+
+        button {
+          flex: 1;
+          padding: 14px;
+          border-radius: 10px;
+          font-size: 15px;
+          font-weight: 600;
+          cursor: pointer;
+          border: none;
+          transition: all 0.2s;
+        }
+
+        .dialog-cancel {
+          background: rgba(91, 163, 208, 0.15);
+          color: #7bb5d9;
+          border: 1px solid rgba(91, 163, 208, 0.3);
+        }
+
+        .dialog-confirm {
+          background: #f44336;
+          color: #fff;
+
+          &:hover { background: #e53935; }
+        }
+      }
+    }
+  }
+}

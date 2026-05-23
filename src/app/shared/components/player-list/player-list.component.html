@@ -1,0 +1,25 @@
+<div class="player-list">
+  <h3 class="list-title">Players ({{ players.length }})</h3>
+  @for (player of players; track player.id) {
+    <div class="player-item" [class.disconnected]="!player.isConnected" [class.me]="player.id === currentPlayerId">
+      <div class="player-info">
+        <span class="player-name">{{ player.name }}</span>
+        @if (player.id === currentPlayerId) {
+          <span class="you-badge">You</span>
+        }
+      </div>
+      <div class="player-status">
+        @if (!player.isConnected) {
+          <span class="status disconnected-status">Disconnected</span>
+        } @else {
+          <span class="status" [class]="'status-' + player.submissionStatus">
+            {{ statusLabel(player.submissionStatus) }}
+          </span>
+        }
+      </div>
+    </div>
+  }
+  @if (players.length === 0) {
+    <p class="empty-text">Waiting for players to join...</p>
+  }
+</div>
