@@ -52,9 +52,9 @@ export class SessionService {
     code: string,
     playerName: string
   ): Promise<{ sessionCode: string; playerId: string }> {
-    const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
-    if (normalized.length < 6) {
-      throw new Error('Please enter a valid 6-character session code.');
+    const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (!normalized) {
+      throw new Error('Please enter a session code.');
     }
 
     // The code IS the host peer ID — connect directly, no lookup needed.
