@@ -52,12 +52,7 @@ export class WebRtcService implements OnDestroy {
   createHostPeer(): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        this.peer = new Peer(undefined, {
-          host: 'peerjs.com',
-          secure: true,
-          port: 443,
-          path: '/myapp',
-        });
+        this.peer = new Peer();
 
         this.peer.on('open', (id: unknown) => {
           resolve(id as string);
@@ -86,12 +81,7 @@ export class WebRtcService implements OnDestroy {
   joinSession(hostPeerId: string): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
-        this.peer = new Peer(undefined, {
-          host: 'peerjs.com',
-          secure: true,
-          port: 443,
-          path: '/myapp',
-        });
+        this.peer = new Peer();
 
         this.peer.on('open', () => {
           const conn = this.peer!.connect(hostPeerId, { reliable: true });
