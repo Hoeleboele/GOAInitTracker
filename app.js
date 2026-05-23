@@ -306,9 +306,8 @@
   function advanceTurn() {
     const next = state.currentTurnIndex + 1;
     if (next >= state.turns.length) {
-      state.turns = state.turns.map(t => ({ ...t, status: 'completed' }));
-      state.phase = 'round-complete';
-      broadcast({ type: 'round_ended', payload: null });
+      startNewRound();
+      return;
     } else {
       state.turns = state.turns.map((t, i) => ({
         ...t,
