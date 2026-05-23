@@ -268,10 +268,11 @@
 
     if (containerId === 'turnsList') {
       const active       = state.turns[state.currentTurnIndex];
-      const isMyTurn     = gameMode === 'offline'
+      const hostManaged  = state.hostManagesTurns && gameMode === 'host';
+      const isMyTurn     = (gameMode === 'offline' || hostManaged)
         ? !!active
         : active && (active.players || []).some(p => p.id === myId);
-      const iAlreadyDone = gameMode !== 'offline' && active && (active.doneIds || []).includes(myId);
+      const iAlreadyDone = (gameMode !== 'offline' && !hostManaged) && active && (active.doneIds || []).includes(myId);
       // Update End Turn button label
       const btn = $('btnEndTurn');
       const selfManaged  = gameMode === 'offline' || hostManaged;
@@ -587,7 +588,12 @@
 
     const next = cur + 1;
     if (next >= state.turns.length) {
-      startNewRound();
+      // All turns done — show round-complete screen before starting new round
+      state.turns.forEach(t => { t.status = 'completed'; });
+      state.phase = 'round-complete';
+      broadcast({ type: 'round_ended',
+        payload: { initiativeToken: state.initiativeToken } });
+      render();
       return;
     }
     state.turns[cur].status   = 'completed';
@@ -740,6 +746,9 @@
       case 'round_ended':
         state.turns = state.turns.map(t => ({ ...t, status: 'completed' }));
         state.phase = 'round-complete';
+        if (msg.payload && msg.payload.initiativeToken) {
+          state.initiativeToken = msg.payload.initiativeToken;
+        }
         render();
         break;
 
