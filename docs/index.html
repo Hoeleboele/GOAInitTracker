@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Guards of Atlantis II – Turn Tracker</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+  <!-- ── Landing ── -->
+  <div id="landing">
+    <div class="card landing-card">
+      <div class="logo">⚓</div>
+      <h1>Guards of Atlantis II</h1>
+      <p class="subtitle">Turn Initiative Tracker</p>
+
+      <div id="landingMain">
+        <input type="text" id="nameInput" placeholder="Your name" maxlength="20" autocomplete="off" />
+
+        <button class="btn btn-primary" id="btnHost">Host Session</button>
+        <button class="btn btn-secondary" id="btnShowJoin">Join Session</button>
+      </div>
+
+      <div id="joinForm" style="display:none;">
+        <input type="text" id="codeInput" placeholder="Session code"
+               maxlength="6" autocomplete="off" autocorrect="off"
+               autocapitalize="characters" spellcheck="false" />
+        <button class="btn btn-primary" id="btnJoin">Connect</button>
+        <button class="btn btn-ghost" id="btnCancelJoin">← Back</button>
+      </div>
+
+      <div id="landingStatus" class="status-msg"></div>
+    </div>
+  </div>
+
+  <!-- ── App ── -->
+  <div id="app" style="display:none;">
+
+    <header id="appHeader">
+      <span class="game-title">Guards of Atlantis II</span>
+      <div class="header-right">
+        <span id="statusBadge" class="badge badge-connected">connected</span>
+        <button class="btn btn-sm btn-ghost" id="btnLeave">Leave</button>
+      </div>
+    </header>
+
+    <main id="appMain">
+
+      <!-- Lobby – Host -->
+      <div id="viewLobbyHost" class="view" style="display:none;">
+        <div class="label">Session Code</div>
+        <div id="lobbyCode" class="code-display"></div>
+        <button class="btn btn-sm btn-copy" id="btnCopyCode">Copy Code</button>
+
+        <div class="label" style="margin-top:28px;">Players</div>
+        <div id="lobbyPlayers" class="player-list"></div>
+
+        <div class="lobby-actions">
+          <button class="btn btn-primary btn-large" id="btnStartGame" disabled>Start Game →</button>
+          <p id="startHint" class="hint">Waiting for players to join…</p>
+        </div>
+      </div>
+
+      <!-- Lobby – Player -->
+      <div id="viewLobbyPlayer" class="view" style="display:none;">
+        <div class="waiting-icon">⚓</div>
+        <h2>Waiting for host to start…</h2>
+        <p id="lobbyPlayerCode" class="session-label"></p>
+        <div id="lobbyPlayerPlayers" class="player-list"></div>
+      </div>
+
+      <!-- Initiative Input -->
+      <div id="viewInitiative" class="view" style="display:none;">
+        <h2 class="phase-title">Set Your Initiative</h2>
+        <div id="initiativeDisplay" class="number-display">—</div>
+
+        <div class="number-pad">
+          <button class="pad-btn" data-val="7">7</button>
+          <button class="pad-btn" data-val="8">8</button>
+          <button class="pad-btn" data-val="9">9</button>
+          <button class="pad-btn" data-val="4">4</button>
+          <button class="pad-btn" data-val="5">5</button>
+          <button class="pad-btn" data-val="6">6</button>
+          <button class="pad-btn" data-val="1">1</button>
+          <button class="pad-btn" data-val="2">2</button>
+          <button class="pad-btn" data-val="3">3</button>
+          <button class="pad-btn pad-wide" data-val="0">0</button>
+          <button class="pad-btn" id="padBack">⌫</button>
+        </div>
+
+        <div class="pad-actions">
+          <button class="btn btn-primary btn-large" id="btnLock">Lock In ✓</button>
+          <button class="btn btn-secondary btn-large" id="btnEdit" style="display:none;">Edit</button>
+          <p id="lockStatus" class="hint"></p>
+        </div>
+
+        <div class="label" style="margin-top:24px;">Players</div>
+        <div id="initiativePlayers" class="player-list"></div>
+      </div>
+
+      <!-- Turn Display -->
+      <div id="viewTurns" class="view" style="display:none;">
+        <h2 class="phase-title">Turn Order</h2>
+        <div id="turnsList" class="turns-list"></div>
+        <div id="turnActions" class="turn-actions" style="display:none;">
+          <button class="btn btn-primary btn-large" id="btnEndTurn">End My Turn</button>
+        </div>
+      </div>
+
+      <!-- Round Complete -->
+      <div id="viewRoundComplete" class="view" style="display:none;">
+        <div class="waiting-icon">🏆</div>
+        <h2 style="text-align:center;margin-bottom:20px;">Round Complete!</h2>
+        <div id="roundSummary" class="turns-list"></div>
+        <div class="turn-actions">
+          <button class="btn btn-primary btn-large" id="btnNewRound" style="display:none;">New Round →</button>
+          <p class="hint" id="newRoundHint" style="display:none;">Waiting for host to start new round…</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <div id="toast"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

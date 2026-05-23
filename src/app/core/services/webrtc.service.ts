@@ -1,4 +1,4 @@
-import { Injectable, NgZone, OnDestroy } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { Subject, Observable } from 'rxjs';
 
 export interface PeerMessage {
@@ -42,8 +42,6 @@ export class WebRtcService implements OnDestroy {
   private _messages$ = new Subject<PeerMessage>();
   private _connectionEvents$ = new Subject<{ type: 'open' | 'close' | 'error'; peerId: string }>();
 
-  constructor(private zone: NgZone) {}
-
   get messages$(): Observable<PeerMessage> {
     return this._messages$.asObservable();
   }
@@ -74,18 +72,14 @@ export class WebRtcService implements OnDestroy {
         });
 
         this.peer.on('connection', (conn: unknown) => {
-          this.zone.run(() => {
-            const connection = conn as DataConnectionInstance;
-            this.setupConnectionListeners(connection);
-            this.playerConnections.set(connection.peer, connection);
-            this._connectionEvents$.next({ type: 'open', peerId: connection.peer });
-          });
+          const connection = conn as DataConnectionInstance;
+          this.setupConnectionListeners(connection);
+          this.playerConnections.set(connection.peer, connection);
+          this._connectionEvents$.next({ type: 'open', peerId: connection.peer });
         });
 
         this.peer.on('disconnected', () => {
-          this.zone.run(() =>
-            this._connectionEvents$.next({ type: 'close', peerId: 'host' })
-          );
+          this._connectionEvents$.next({ type: 'close', peerId: 'host' });
         });
       } catch (e) {
         reject(e);
@@ -121,10 +115,8 @@ export class WebRtcService implements OnDestroy {
             if (settled) return;
             settled = true;
             clearTimeout(timeout);
-            this.zone.run(() => {
-              this._connectionEvents$.next({ type: 'open', peerId: hostPeerId });
-              resolve();
-            });
+            this._connectionEvents$.next({ type: 'open', peerId: hostPeerId });
+            resolve();
           });
 
           conn.on('error', () => {
@@ -133,13 +125,11 @@ export class WebRtcService implements OnDestroy {
           });
 
           conn.on('close', () => {
-            this.zone.run(() =>
-              this._connectionEvents$.next({ type: 'close', peerId: hostPeerId })
-            );
+            this._connectionEvents$.next({ type: 'close', peerId: hostPeerId });
           });
 
           conn.on('data', (data: unknown) => {
-            this.zone.run(() => this._messages$.next(data as PeerMessage));
+            this._messages$.next(data as PeerMessage);
           });
         });
 
@@ -188,20 +178,16 @@ export class WebRtcService implements OnDestroy {
 
   private setupConnectionListeners(conn: DataConnectionInstance): void {
     conn.on('data', (data: unknown) => {
-      this.zone.run(() => this._messages$.next(data as PeerMessage));
+      this._messages$.next(data as PeerMessage);
     });
 
     conn.on('close', () => {
-      this.zone.run(() => {
-        this.playerConnections.delete(conn.peer);
-        this._connectionEvents$.next({ type: 'close', peerId: conn.peer });
-      });
+      this.playerConnections.delete(conn.peer);
+      this._connectionEvents$.next({ type: 'close', peerId: conn.peer });
     });
 
     conn.on('error', () => {
-      this.zone.run(() =>
-        this._connectionEvents$.next({ type: 'error', peerId: conn.peer })
-      );
+      this._connectionEvents$.next({ type: 'error', peerId: conn.peer });
     });
   }
 }
