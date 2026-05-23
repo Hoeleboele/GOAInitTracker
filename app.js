@@ -19,6 +19,7 @@
     turns:            [],
     currentTurnIndex: 0,
     initiativeToken:  'blue',   // 'blue' | 'orange'
+    mixedTies:        {},       // { [initiative]: { bluePool, orangePool } }
   };
 
   // initiative pad state
@@ -174,13 +175,18 @@
     if (!state.turns.length) { el.innerHTML = ''; return; }
 
     el.innerHTML = state.turns.map(t => {
-      const cls     = t.status === 'active' ? ' active' : t.status === 'completed' ? ' completed' : '';
-      const players = t.players || [];
-      const isSimul = players.length > 1;
-      const teamCls = (!isSimul && players[0] && players[0].team) ? ` team-${players[0].team}` : '';
-      const names   = players.map(p => esc(p.name)).join(' & ');
-      const badge   = t.status === 'active' ? '<span class="turn-badge">▶ Active</span>' : '';
-      let waitInfo  = '';
+      const cls         = t.status === 'active' ? ' active' : t.status === 'completed' ? ' completed' : '';
+      const players     = t.players || [];
+      const isMixedSlot = !!t.mixedTieSlot;
+      const isSimul     = !isMixedSlot && players.length > 1;
+      const teamCls     = isMixedSlot ? ` team-${t.teamTurn}`
+                        : (!isSimul && players[0] && players[0].team) ? ` team-${players[0].team}` : '';
+      const names       = isMixedSlot
+                        ? players.map(p => esc(p.name)).join(' / ') + ' <em>(any&nbsp;1)</em>'
+                        : players.map(p => esc(p.name)).join(' & ');
+      const badge       = t.status === 'active' ? '<span class="turn-badge">▶ Active</span>' : '';
+      const subLabel    = isMixedSlot ? ' · Tie' : isSimul ? ' · Simultaneous' : '';
+      let waitInfo      = '';
       if (t.status === 'active' && isSimul) {
         const done = (t.doneIds || []).length;
         waitInfo = `<div class="turn-wait">Simultaneous — ${done}/${players.length} ready</div>`;
@@ -190,7 +196,7 @@
           <div class="turn-order">${t.order}</div>
           <div class="turn-info">
             <div class="turn-name">${names}</div>
-            <div class="turn-initiative">Initiative ${t.initiative}${isSimul ? ' · Simultaneous' : ''}</div>
+            <div class="turn-initiative">Initiative ${t.initiative}${subLabel}</div>
             ${waitInfo}
           </div>
           ${badge}
@@ -203,7 +209,7 @@
       const iAlreadyDone = active && (active.doneIds || []).includes(myId);
       $('turnActions').style.display = (isMyTurn && !iAlreadyDone) ? 'block' : 'none';
       const waitEl = $('turnWaiting');
-      if (isMyTurn && iAlreadyDone) {
+      if (isMyTurn && iAlreadyDone && !active.mixedTieSlot) {
         const waiting = (active.players || [])
           .filter(p => p.id !== myId && !(active.doneIds || []).includes(p.id))
           .map(p => esc(p.name));
@@ -329,7 +335,7 @@
     });
     const sortedVals = Object.keys(byVal).map(Number).sort((a, b) => b - a);
 
-    let token = state.initiativeToken;
+    state.mixedTies = {};
     const turns = [];
     let order = 1;
 
@@ -339,7 +345,7 @@
       const orange = group.filter(p => p.team === 'orange');
 
       if (blue.length === 0 || orange.length === 0) {
-        // Pure same-team or unassigned: one simultaneous slot
+        // Pure same-team (or unassigned): one simultaneous slot
         turns.push({
           order:      order++,
           players:    group.map(p => ({ id: p.id, name: p.name, team: p.team || '' })),
@@ -348,27 +354,9 @@
           doneIds:    [],
         });
       } else {
-        // Mixed teams: alternate one at a time, token flips after EVERY player's turn
-        const queues = { blue: [...blue], orange: [...orange] };
-        let t = token;
-        while (queues.blue.length > 0 || queues.orange.length > 0) {
-          const other = t === 'blue' ? 'orange' : 'blue';
-          if (queues[t].length > 0) {
-            const p = queues[t].shift();
-            turns.push({
-              order:      order++,
-              players:    [{ id: p.id, name: p.name, team: p.team }],
-              initiative: val,
-              status:     'pending',
-              doneIds:    [],
-              tokenAfter: other, // token always flips when this turn completes
-            });
-            t = other; // always flip
-          } else {
-            t = other; // this team exhausted — switch without recording a flip
-          }
-        }
-        token = t;
+        // Mixed teams: store pools and build ONLY the first team slot
+        state.mixedTies[val] = { bluePool: [...blue], orangePool: [...orange] };
+        turns.push(buildMixedSlot(val, state.initiativeToken, order++));
       }
     }
 
@@ -376,18 +364,72 @@
     state.turns            = turns;
     state.currentTurnIndex = 0;
     state.phase            = 'turns';
-    // Token stays as-is at reveal time — it updates step-by-step as tied turns complete
     broadcast({ type: 'turns_revealed',
-      payload: { turns: state.turns, currentTurnIndex: 0, initiativeToken: state.initiativeToken } });
+      payload: { turns: state.turns, currentTurnIndex: 0,
+                 initiativeToken: state.initiativeToken, mixedTies: state.mixedTies } });
     render();
   }
 
-  function advanceTurn() {
-    const cur  = state.currentTurnIndex;
+  // Builds one mixed-tie team slot; tokenAfter = flip to other team UNLESS other team is already empty
+  function buildMixedSlot(initiative, teamTurn, order) {
+    const tie       = state.mixedTies[initiative];
+    const otherTeam = teamTurn === 'blue' ? 'orange' : 'blue';
+    const otherHasPlayers = tie[`${otherTeam}Pool`].length > 0;
+    return {
+      order,
+      players:      tie[`${teamTurn}Pool`].map(p => ({ id: p.id, name: p.name, team: p.team })),
+      initiative,
+      status:       'pending',
+      doneIds:      [],
+      mixedTieSlot: true,
+      teamTurn,
+      tokenAfter:   otherHasPlayers ? otherTeam : undefined, // no flip on last mixed slot
+    };
+  }
 
-    // Apply token flip recorded on the just-completed turn (mixed-team tie)
-    if (state.turns[cur] && state.turns[cur].tokenAfter !== undefined) {
-      state.initiativeToken = state.turns[cur].tokenAfter;
+  function advanceTurn() {
+    const cur         = state.currentTurnIndex;
+    const currentTurn = state.turns[cur];
+
+    // Apply token flip stored on the just-completed turn
+    if (currentTurn && currentTurn.tokenAfter !== undefined) {
+      state.initiativeToken = currentTurn.tokenAfter;
+    }
+
+    // If this was a mixed-tie slot, update pools and inject the next slot
+    if (currentTurn && currentTurn.mixedTieSlot) {
+      const initiative = currentTurn.initiative;
+      const takenTeam  = currentTurn.teamTurn;
+      const otherTeam  = takenTeam === 'blue' ? 'orange' : 'blue';
+      const takenById  = currentTurn.doneIds[0];
+      const tie        = state.mixedTies[initiative];
+
+      // Remove the player who took this slot
+      tie[`${takenTeam}Pool`] = tie[`${takenTeam}Pool`].filter(p => p.id !== takenById);
+
+      const takenRemaining = tie[`${takenTeam}Pool`].length;
+      const otherRemaining = tie[`${otherTeam}Pool`].length;
+      const nextOrder      = cur + 2; // 1-based
+
+      let nextSlot = null;
+      if (otherRemaining > 0) {
+        // Other team still has players — next mixed slot for them (token just flipped)
+        nextSlot = buildMixedSlot(initiative, state.initiativeToken, nextOrder);
+      } else if (takenRemaining > 0) {
+        // Other team exhausted — remaining players go simultaneously
+        nextSlot = {
+          order:      nextOrder,
+          players:    tie[`${takenTeam}Pool`].map(p => ({ id: p.id, name: p.name, team: p.team })),
+          initiative,
+          status:     'pending',
+          doneIds:    [],
+        };
+      }
+
+      if (nextSlot) {
+        state.turns.splice(cur + 1, 0, nextSlot);
+        for (let i = cur + 1; i < state.turns.length; i++) state.turns[i].order = i + 1;
+      }
     }
 
     const next = cur + 1;
@@ -400,7 +442,8 @@
     state.turns[next].doneIds = [];
     state.currentTurnIndex    = next;
     broadcast({ type: 'turn_advanced',
-      payload: { turns: state.turns, currentTurnIndex: next, initiativeToken: state.initiativeToken } });
+      payload: { turns: state.turns, currentTurnIndex: next,
+                 initiativeToken: state.initiativeToken, mixedTies: state.mixedTies } });
     render();
   }
 
@@ -408,6 +451,7 @@
     state.phase = 'initiative';
     state.turns = [];
     state.currentTurnIndex = 0;
+    state.mixedTies = {};
     Object.keys(state.players).forEach(id => {
       state.players[id] = { ...state.players[id],
         submissionStatus: 'not-submitted', initiative: undefined };
@@ -424,6 +468,7 @@
       turns:            state.turns,
       currentTurnIndex: state.currentTurnIndex,
       initiativeToken:  state.initiativeToken,
+      mixedTies:        state.mixedTies,
     };
   }
 
@@ -471,8 +516,13 @@
         const turn = state.turns[state.currentTurnIndex];
         if (!turn) break;
         if (!turn.doneIds) turn.doneIds = [];
-        if (!turn.doneIds.includes(playerId)) turn.doneIds.push(playerId);
-        if (turn.doneIds.length >= (turn.players || []).length) {
+        // Only candidates listed for this turn may end it
+        const eligible = (turn.players || []).some(p => p.id === playerId);
+        if (!eligible || turn.doneIds.includes(playerId)) break;
+        turn.doneIds.push(playerId);
+        // Mixed-tie team slots complete when any 1 player ends their turn
+        const required = turn.mixedTieSlot ? 1 : (turn.players || []).length;
+        if (turn.doneIds.length >= required) {
           advanceTurn();
         } else {
           broadcast({ type: 'state_sync', payload: serializeState() });
@@ -503,6 +553,7 @@
         state.turns            = msg.payload.turns || [];
         state.currentTurnIndex = msg.payload.currentTurnIndex || 0;
         state.initiativeToken  = msg.payload.initiativeToken || state.initiativeToken;
+        state.mixedTies        = msg.payload.mixedTies || {};
         render();
         break;
 
@@ -511,6 +562,7 @@
         state.currentTurnIndex = msg.payload.currentTurnIndex;
         state.phase            = 'turns';
         state.initiativeToken  = msg.payload.initiativeToken || state.initiativeToken;
+        state.mixedTies        = msg.payload.mixedTies || {};
         render();
         break;
 
@@ -518,6 +570,7 @@
         state.turns            = msg.payload.turns;
         state.currentTurnIndex = msg.payload.currentTurnIndex;
         if (msg.payload.initiativeToken !== undefined) state.initiativeToken = msg.payload.initiativeToken;
+        if (msg.payload.mixedTies       !== undefined) state.mixedTies       = msg.payload.mixedTies;
         render();
         break;
 
@@ -582,6 +635,7 @@
         },
         turns: [], currentTurnIndex: 0,
         initiativeToken: 'blue',
+        mixedTies: {},
       };
       showApp();
       render();
@@ -620,7 +674,7 @@
         myName = ($('nameInput').value || 'Player').trim();
         sessionCode = code;
 
-        state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue' };
+        state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {} };
         showApp();
         render();
         setStatus('');
