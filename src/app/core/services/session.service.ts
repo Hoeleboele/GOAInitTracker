@@ -4,8 +4,6 @@ import { StateService } from './state.service';
 import { Player } from '../models/player.model';
 import { Turn } from '../models/turn.model';
 
-const SESSION_STORAGE_KEY = 'guards_session';
-
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   constructor(
@@ -14,8 +12,11 @@ export class SessionService {
   ) {}
 
   async createSession(playerName: string): Promise<{ sessionCode: string; playerId: string }> {
-    const peerId = await this.webRtcService.createHostPeer();
-    const sessionCode = this.deriveCode(peerId);
+    // Generate code first and register PeerJS with it as the peer ID.
+    // This way players can connect using just the code — no lookup needed.
+    const sessionCode = this.generateCode();
+    await this.webRtcService.createHostPeer(sessionCode);
+
     const sessionId = this.generateId();
     const playerId = this.generateId();
 
@@ -43,7 +44,6 @@ export class SessionService {
       connectionStatus: 'connected',
     });
 
-    this.saveSessionLocally(sessionCode, peerId);
     this.listenForPlayerMessages();
     return { sessionCode, playerId };
   }
@@ -52,13 +52,13 @@ export class SessionService {
     code: string,
     playerName: string
   ): Promise<{ sessionCode: string; playerId: string }> {
-    const normalized = code.toUpperCase();
-    const hostPeerId = this.lookupHostPeerId(normalized);
-    if (!hostPeerId) {
-      throw new Error('Session code not found. Ask the host to share their session code.');
+    const normalized = code.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 4);
+    if (normalized.length < 4) {
+      throw new Error('Please enter a valid 4-character session code.');
     }
 
-    await this.webRtcService.joinSession(hostPeerId);
+    // The code IS the host peer ID — connect directly, no lookup needed.
+    await this.webRtcService.joinSession(normalized);
 
     const sessionId = this.generateId();
     const playerId = this.generateId();
@@ -304,27 +304,13 @@ export class SessionService {
     };
   }
 
-  private deriveCode(peerId: string): string {
-    return peerId.replace(/[^A-Z0-9]/gi, '').substring(0, 4).toUpperCase();
-  }
-
-  private saveSessionLocally(code: string, peerId: string): void {
-    const map = this.getSessionMap();
-    map[code] = peerId;
-    localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(map));
-  }
-
-  private lookupHostPeerId(code: string): string | null {
-    const map = this.getSessionMap();
-    return map[code] ?? null;
-  }
-
-  private getSessionMap(): Record<string, string> {
-    try {
-      return JSON.parse(localStorage.getItem(SESSION_STORAGE_KEY) ?? '{}');
-    } catch {
-      return {};
+  private generateCode(): string {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // exclude ambiguous chars
+    let code = '';
+    for (let i = 0; i < 4; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
     }
+    return code;
   }
 
   private generateId(): string {

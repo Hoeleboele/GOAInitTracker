@@ -49,10 +49,10 @@ export class WebRtcService implements OnDestroy {
     return this._connectionEvents$.asObservable();
   }
 
-  createHostPeer(): Promise<string> {
+  createHostPeer(peerId?: string): Promise<string> {
     return new Promise((resolve, reject) => {
       try {
-        this.peer = new Peer();
+        this.peer = peerId ? new Peer(peerId) : new Peer();
 
         this.peer.on('open', (id: unknown) => {
           resolve(id as string);
