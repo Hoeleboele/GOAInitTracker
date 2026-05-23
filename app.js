@@ -204,9 +204,26 @@
       const isSimul     = !isMixedSlot && players.length > 1;
       const teamCls     = isMixedSlot ? ` team-${t.teamTurn}`
                         : (!isSimul && players[0] && players[0].team) ? ` team-${players[0].team}` : '';
-      const names       = isMixedSlot
-                        ? players.map(p => esc(p.name)).join(' / ') + ' <em>(any&nbsp;1)</em>'
-                        : players.map(p => esc(p.name)).join(' & ');
+      let names;
+      if (isMixedSlot) {
+        const tie = t.status !== 'completed' && state.mixedTies && state.mixedTies[t.initiative];
+        if (tie) {
+          const mkTeam = (pool, key) => pool.length
+            ? `<span class="team-dot ${key}"></span>${pool.map(p => esc(p.name)).join(', ')}` : null;
+          const blueHtml   = mkTeam(tie.bluePool,   'blue');
+          const orangeHtml = mkTeam(tie.orangePool, 'orange');
+          const activeHtml  = t.teamTurn === 'blue' ? blueHtml   : orangeHtml;
+          const waitingHtml = t.teamTurn === 'blue' ? orangeHtml : blueHtml;
+          const parts = [];
+          if (activeHtml)  parts.push(activeHtml + ' <em>(any&nbsp;1)</em>');
+          if (waitingHtml) parts.push(waitingHtml);
+          names = parts.join(' <span class="tie-vs">vs</span> ');
+        } else {
+          names = players.map(p => esc(p.name)).join(' / ') + ' <em>(any&nbsp;1)</em>';
+        }
+      } else {
+        names = players.map(p => esc(p.name)).join(' & ');
+      }
       const badge       = t.status === 'active' ? '<span class="turn-badge">▶ Active</span>' : '';
       const subLabel    = isMixedSlot ? ' · Tie' : isSimul ? ' · Simultaneous' : '';
       let waitInfo      = '';
