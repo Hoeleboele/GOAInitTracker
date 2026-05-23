@@ -11,7 +11,8 @@
   let myId        = '';
   let myName      = '';
   let myTeam      = '';         // 'blue' | 'orange'
-  let hostTokenChoice = 'blue'; // host only: which team starts with token
+  let hostTokenChoice  = 'blue'; // host only: which team starts with token
+  let hostManagesTurns = false;   // host only: host manually ends each turn
 
   let state = {
     phase:            'lobby',  // 'lobby'|'initiative'|'turns'|'round-complete'
@@ -20,6 +21,7 @@
     currentTurnIndex: 0,
     initiativeToken:  'blue',   // 'blue' | 'orange'
     mixedTies:        {},       // { [initiative]: { bluePool, orangePool } }
+    hostManagesTurns: false,    // host manages turn endings on behalf of players
   };
 
   // initiative pad state
@@ -272,14 +274,15 @@
       const iAlreadyDone = gameMode !== 'offline' && active && (active.doneIds || []).includes(myId);
       // Update End Turn button label
       const btn = $('btnEndTurn');
-      if (gameMode === 'offline' && active && active.mixedTieSlot) {
+      const selfManaged  = gameMode === 'offline' || hostManaged;
+      if (selfManaged && active && active.mixedTieSlot) {
         btn.textContent = `End ${active.teamTurn === 'blue' ? '🔵 Blue' : '🟠 Orange'} Team’s Turn`;
       } else {
-        btn.textContent = gameMode === 'offline' ? 'End Turn' : 'End My Turn';
+        btn.textContent = selfManaged ? 'End Turn' : 'End My Turn';
       }
       $('turnActions').style.display = (isMyTurn && !iAlreadyDone) ? 'block' : 'none';
       // Notify once per turn when it first becomes this player’s move (skip in offline)
-      if (gameMode !== 'offline' && isMyTurn && !iAlreadyDone && state.currentTurnIndex !== lastNotifiedTurnIndex) {
+      if (gameMode !== 'offline' && !hostManaged && isMyTurn && !iAlreadyDone && state.currentTurnIndex !== lastNotifiedTurnIndex) {
         lastNotifiedTurnIndex = state.currentTurnIndex;
         notifyMyTurn();
       }
@@ -423,7 +426,9 @@
 
   // ── End turn / new round ────────────────────────────────────────────────
   $('btnEndTurn').addEventListener('click', () => {
-    if (gameMode === 'offline') { endTurnOffline(); return; }
+    if (gameMode === 'offline' || (state.hostManagesTurns && gameMode === 'host')) {
+      endTurnOffline(); return;
+    }
     sendToHost({ type: 'turn_ended', payload: { playerId: myId } });
   });
 
@@ -444,13 +449,15 @@
 
   function startGame() {
     state.phase = 'initiative';
-    state.initiativeToken = hostTokenChoice;
+    state.initiativeToken  = hostTokenChoice;
+    state.hostManagesTurns = hostManagesTurns;
     Object.keys(state.players).forEach(id => {
       state.players[id] = { ...state.players[id],
         submissionStatus: 'not-submitted', initiative: undefined };
     });
     resetInitPad();
-    broadcast({ type: 'game_started', payload: { initiativeToken: hostTokenChoice } });
+    broadcast({ type: 'game_started',
+      payload: { initiativeToken: hostTokenChoice, hostManagesTurns } });
     render();
   }
 
@@ -622,6 +629,7 @@
       currentTurnIndex: state.currentTurnIndex,
       initiativeToken:  state.initiativeToken,
       mixedTies:        state.mixedTies,
+      hostManagesTurns: state.hostManagesTurns,
     };
   }
 
@@ -690,8 +698,9 @@
     switch (msg.type) {
 
       case 'game_started':
-        state.phase = 'initiative';
-        state.initiativeToken = msg.payload.initiativeToken || 'blue';
+        state.phase            = 'initiative';
+        state.initiativeToken  = msg.payload.initiativeToken || 'blue';
+        state.hostManagesTurns = msg.payload.hostManagesTurns || false;
         Object.keys(state.players).forEach(id => {
           state.players[id] = { ...state.players[id],
             submissionStatus: 'not-submitted', initiative: undefined };
@@ -707,6 +716,7 @@
         state.currentTurnIndex = msg.payload.currentTurnIndex || 0;
         state.initiativeToken  = msg.payload.initiativeToken || state.initiativeToken;
         state.mixedTies        = msg.payload.mixedTies || {};
+        state.hostManagesTurns = msg.payload.hostManagesTurns || false;
         render();
         break;
 
@@ -884,6 +894,8 @@
     offlinePlayers     = [];
     offlineInitIdx     = 0;
     offlineTokenChoice = 'blue';
+    hostManagesTurns   = false;
+    if ($('chkHostTurns')) $('chkHostTurns').checked = false;
     state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {} };
     resetInitPad();
   }
@@ -1021,6 +1033,9 @@
     hostTokenChoice = 'orange';
     $('btnTokenOrange').classList.add('selected');
     $('btnTokenBlue').classList.remove('selected');
+  });
+  $('chkHostTurns').addEventListener('change', e => {
+    hostManagesTurns = e.target.checked;
   });
 
   // ── Boot ────────────────────────────────────────────────────────────────

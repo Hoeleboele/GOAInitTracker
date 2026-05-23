@@ -255,6 +255,19 @@ input[type=text]::placeholder { color: var(--muted); }
 
 .lobby-actions { margin-top: 28px; }
 
+/* ── Host option toggle ── */
+.option-toggle {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; margin-bottom: 12px;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); cursor: pointer;
+  font-size: 14px; color: var(--muted); user-select: none;
+}
+.option-toggle input[type="checkbox"] {
+  width: 16px; height: 16px; cursor: pointer; accent-color: var(--gold); flex-shrink: 0;
+}
+.option-toggle:has(:checked) { color: var(--text); border-color: var(--gold); }
+
 /* ── Number pad ── */
 .phase-title { text-align: center; font-size: 20px; margin-bottom: 16px; }
 
