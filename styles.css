@@ -505,18 +505,30 @@ input[type=text]::placeholder { color: var(--muted); }
   box-shadow: 0 0 14px rgba(208,96,32,0.15);
 }
 
-/* Team indicator dots */
+/* Team indicator icons */
 .team-dot {
   display: inline-block;
-  width: 9px; height: 9px;
-  border-radius: 50%;
-  margin-right: 6px;
+  width: 1em; height: 1em;
+  margin-right: 5px;
   flex-shrink: 0;
   vertical-align: middle;
   position: relative; top: -1px;
+  background: none;
+  font-style: normal;
+  line-height: 1;
 }
-.team-dot.blue   { background: var(--blue-clr);   box-shadow: 0 0 5px rgba(68,196,236,0.6); }
-.team-dot.orange { background: var(--orange-clr);  box-shadow: 0 0 5px rgba(208,96,32,0.6); }
+.team-dot::before {
+  font-size: 13px;
+  line-height: 1;
+}
+.team-dot.blue::before {
+  content: '💎';
+  filter: drop-shadow(0 0 4px rgba(68,196,236,0.8));
+}
+.team-dot.orange::before {
+  content: '⚙️';
+  filter: drop-shadow(0 0 4px rgba(208,96,32,0.9));
+}
 
 /* ═══════════════════════════════════════════════════════════════════════════
    INITIATIVE TOKEN BANNER
