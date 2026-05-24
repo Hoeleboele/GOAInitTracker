@@ -526,8 +526,9 @@ input[type=text]::placeholder { color: var(--muted); }
   filter: drop-shadow(0 0 4px rgba(68,196,236,0.8));
 }
 .team-dot.orange::before {
-  content: '⚙️';
-  filter: drop-shadow(0 0 4px rgba(208,96,32,0.9));
+  content: '\2699';
+  color: var(--orange-clr);
+  text-shadow: 0 0 6px rgba(208,96,32,0.9);
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -756,6 +757,8 @@ input[type=text]::placeholder { color: var(--muted); }
   opacity: 0.28;
   transition: opacity .15s, border-color .15s;
 }
+.offline-team-btn[data-team="blue"]   { color: var(--blue-clr); }
+.offline-team-btn[data-team="orange"] { color: var(--orange-clr); }
 .offline-team-btn.active {
   opacity: 1;
   border-color: rgba(244,238,230,0.40);

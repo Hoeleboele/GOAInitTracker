@@ -103,7 +103,7 @@
     const tok = state.initiativeToken || 'blue';
     if (state.phase !== 'lobby' && state.phase !== 'offline-setup') {
       tb.className   = `token-banner ${tok}`;
-      tb.textContent = tok === 'blue' ? '🔵 Blue has the initiative token' : '🟠 Orange has the initiative token';
+      tb.textContent = tok === 'blue' ? '� Blue has the initiative token' : '⚙ Orange has the initiative token';
       tb.style.display = 'block';
     } else {
       tb.style.display = 'none';
@@ -308,8 +308,8 @@
         <input class="offline-name-input" type="text" value="${esc(p.name)}" maxlength="20"
                placeholder="Player ${i + 1}" data-idx="${i}" autocomplete="off" />
         <div class="offline-team-toggle">
-          <button class="offline-team-btn${p.team === 'blue'   ? ' active' : ''}" data-idx="${i}" data-team="blue">🔵</button>
-          <button class="offline-team-btn${p.team === 'orange' ? ' active' : ''}" data-idx="${i}" data-team="orange">🟠</button>
+          <button class="offline-team-btn${p.team === 'blue'   ? ' active' : ''}" data-idx="${i}" data-team="blue">�</button>
+          <button class="offline-team-btn${p.team === 'orange' ? ' active' : ''}" data-idx="${i}" data-team="orange">⚙</button>
         </div>
         <button class="btn-remove-offline" data-idx="${i}" title="Remove">&#x2715;</button>
       </div>
