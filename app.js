@@ -97,13 +97,28 @@
     { id: 'rowenna',     name: 'Rowenna',      accent: '#D07840' },
     { id: 'sabina',      name: 'Sabina',       accent: '#88B8D8' },
     { id: 'silverarrow', name: 'Silver Arrow', accent: '#B8D0E8' },
+    { id: 'snorri',      name: 'Snorri',       accent: '#A8C0D8' },
+    { id: 'swift',       name: 'Swift',        accent: '#78D898' },
+    { id: 'takahide',    name: 'Takahide',     accent: '#C89060' },
+    { id: 'tali',        name: 'Tali',         accent: '#D8A0C0' },
+    { id: 'tigerclaw',   name: 'Tiger Claw',   accent: '#E8A030' },
+    { id: 'trinkets',    name: 'Trinkets',     accent: '#C8D060' },
+    { id: 'ursafar',     name: 'Ursafar',      accent: '#A87840' },
+    { id: 'wasp',        name: 'Wasp',         accent: '#88C840' },
+    { id: 'whisper',     name: 'Whisper',      accent: '#A888D0' },
+    { id: 'widget',      name: 'Widget',       accent: '#58C8E0' },
+    { id: 'wuk',         name: 'Wuk',          accent: '#E06840' },
+    { id: 'xargatha',    name: 'Xargatha',     accent: '#B04060' },
   ];
 
   function charData(id) {
     return CHARACTERS.find(c => c.id === id) || null;
   }
 
+  const AVATAR_REST = new Set(['snorri','swift','takahide','tali','tigerclaw','trinkets','ursafar','wasp','whisper','widget','wuk','xargatha']);
+
   function charAvatarPath(id) {
+    if (AVATAR_REST.has(id)) return 'avatar_Rest/' + id + '.webp';
     return 'avatars_full/' + (id === 'emmit' ? 'emmitt' : id) + '.webp';
   }
 
