@@ -601,7 +601,10 @@
       if (tie.bluePool.length === 0 || tie.orangePool.length === 0) {
         const remaining = tie.bluePool.length > 0 ? tie.bluePool : tie.orangePool;
         const slotIdx = state.turns.findIndex(t => t.initiative === initNum && t.mixedTieSlot);
-        if (slotIdx !== -1) {
+        // Only modify future slots — never touch the currently-active slot.
+        // If the collapsed tie belongs to the active slot, advanceTurn() will
+        // clean it up naturally when the current team finishes.
+        if (slotIdx > cur) {
           if (remaining.length > 0) {
             // Convert to a plain simultaneous slot for the surviving team
             state.turns[slotIdx] = {
@@ -614,8 +617,8 @@
           } else {
             state.turns.splice(slotIdx, 1);
           }
+          delete state.mixedTies[initNum];
         }
-        delete state.mixedTies[initNum];
       }
     });
   }
