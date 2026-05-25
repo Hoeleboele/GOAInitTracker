@@ -577,11 +577,31 @@
         }
       }
     }
-    // Remove from all mixed-tie pools
+    // Remove from all mixed-tie pools; if one pool empties, convert slot to simultaneous
     Object.keys(state.mixedTies).forEach(init => {
-      const tie = state.mixedTies[+init];
+      const initNum = +init;
+      const tie = state.mixedTies[initNum];
       tie.bluePool   = tie.bluePool.filter(p => p.id !== targetId);
       tie.orangePool = tie.orangePool.filter(p => p.id !== targetId);
+      if (tie.bluePool.length === 0 || tie.orangePool.length === 0) {
+        const remaining = tie.bluePool.length > 0 ? tie.bluePool : tie.orangePool;
+        const slotIdx = state.turns.findIndex(t => t.initiative === initNum && t.mixedTieSlot);
+        if (slotIdx !== -1) {
+          if (remaining.length > 0) {
+            // Convert to a plain simultaneous slot for the surviving team
+            state.turns[slotIdx] = {
+              order:      state.turns[slotIdx].order,
+              players:    remaining.map(p => ({ id: p.id, name: p.name, team: p.team })),
+              initiative: initNum,
+              status:     'pending',
+              doneIds:    [],
+            };
+          } else {
+            state.turns.splice(slotIdx, 1);
+          }
+        }
+        delete state.mixedTies[initNum];
+      }
     });
   }
 
