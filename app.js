@@ -250,7 +250,7 @@
         : p.submissionStatus === 'submitted' ? 'Entered…'
         :                                      'Waiting…';
       const teamDot = p.team ? `<span class="team-dot ${p.team}"></span>` : '';
-      const charTag = p.character ? `<span class="char-badge">${charLabel(p.character)}</span>` : '';
+      const charTag = p.character ? `<span class="char-badge">· ${charLabel(p.character)}</span>` : '';
       return `
         <div class="player-row${isMe ? ' is-me' : ''}">
           <span class="player-name">
