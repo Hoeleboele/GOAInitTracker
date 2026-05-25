@@ -365,13 +365,9 @@
   function renderAbilities() {
     const isHost    = gameMode === 'host';
     const isOffline = gameMode === 'offline';
-    const hasEmmit   = characterInGame('emmit');
     const hasHanu    = characterInGame('hanu');
     const hasIgnatia = characterInGame('ignatia');
     const active     = state.turns[state.currentTurnIndex];
-
-    // Emmit — Reverse Time: Emmit player always; host/offline if Emmit is in game
-    const canRevTime = myCharacter === 'emmit' || ((isHost || isOffline) && hasEmmit);
 
     // Hanu — Hurry Up: Hanu player on their active turn; host/offline if Hanu is in game
     const activeIds    = active ? (active.players || []).map(p => p.id) : [];
@@ -382,15 +378,10 @@
     const canChaos = myCharacter === 'ignatia' || ((isHost || isOffline) && hasIgnatia);
 
     const panel = $('abilityPanel');
-    if (!canRevTime && !canHurryUp && !canChaos) { panel.style.display = 'none'; return; }
+    if (!canHurryUp && !canChaos) { panel.style.display = 'none'; return; }
 
     panel.style.display = 'flex';
     let html = '';
-    if (canRevTime) {
-      const on  = state.reverseInitiative;
-      html += `<button class="ability-btn emmit-ability${on ? ' ability-active' : ''}" id="btnReverseTime">
-        ⏪ Reverse Time${on ? ' ✓' : ''}</button>`;
-    }
     if (canHurryUp) {
       html += `<button class="ability-btn hanu-ability" id="btnHurryUp">⚡ Hurry Up!</button>`;
     }
@@ -399,10 +390,6 @@
     }
     panel.innerHTML = html;
 
-    if (canRevTime) {
-      $('btnReverseTime').addEventListener('click', () =>
-        sendToHost({ type: 'use_reverse_time' }));
-    }
     if (canHurryUp) {
       $('btnHurryUp').addEventListener('click', showHurryUpPanel);
     }
