@@ -718,7 +718,14 @@
     const cur     = state.currentTurnIndex;
     state.players[targetId] = { ...target, initiative: newInit };
     purgePlayerFromUpcoming(targetId);
-    insertPlayerAtInitiative(targetId, target.name, target.team, newInit);
+    // Only give the target a future slot if their new initiative is still ahead
+    // in the turn order. If it lands at or behind the current turn they lose
+    // their remaining turn this round.
+    const currentInit = state.turns[cur] ? state.turns[cur].initiative : null;
+    const stillFuture = currentInit === null || (
+      state.reverseInitiative ? newInit > currentInit : newInit < currentInit
+    );
+    if (stillFuture) insertPlayerAtInitiative(targetId, target.name, target.team, newInit);
     toast(`☠️ ${esc(target.name)} poisoned! -${penalty} initiative (now ${newInit})`);
     broadcast({ type: 'state_sync', payload: serializeState() });
     render();
