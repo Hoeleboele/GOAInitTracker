@@ -998,6 +998,11 @@
   }
 
   function advanceTurn() {
+    // Close any open ability panels
+    ['hurryUpPanel', 'poisonPanel', 'takahidePanel'].forEach(id => {
+      const el = $(id); if (el) el.style.display = 'none';
+    });
+
     const cur         = state.currentTurnIndex;
     const currentTurn = state.turns[cur];
 
