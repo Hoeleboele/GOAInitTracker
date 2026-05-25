@@ -77,38 +77,38 @@
 
   // ── Character helpers ────────────────────────────────────────────────────
   const CHARACTERS = [
-    { id: 'arien',       name: 'Arien',       accent: '#70B858', quote: 'Every arrow finds its mark. Eventually.' },
-    { id: 'bain',        name: 'Bain',         accent: '#6888C8', quote: 'Honor is the only shield that never breaks.' },
-    { id: 'brogan',      name: 'Brogan',       accent: '#B07040', quote: "Slow? I prefer 'thorough'." },
-    { id: 'brynn',       name: 'Brynn',        accent: '#D07898', quote: 'They never see the knife coming.' },
-    { id: 'cutter',      name: 'Cutter',       accent: '#50A8C0', quote: 'One cut is all it takes.' },
-    { id: 'dodger',      name: 'Dodger',       accent: '#C0A830', quote: "You can't hit what you can't catch." },
-    { id: 'emmit',       name: 'Emmit',        accent: '#8080CC', quote: "I've seen how this ends. Let me try again.", special: '⏪' },
-    { id: 'garrus',      name: 'Garrus',       accent: '#9080C0', quote: 'Power is earned, not granted.' },
-    { id: 'gydion',      name: 'Gydion',       accent: '#58C0A0', quote: 'The spirits guide my hand.' },
-    { id: 'hanu',        name: 'Hanu',         accent: '#CC4030', quote: 'Move fast or move aside.', special: '⚡' },
-    { id: 'ignatia',     name: 'Ignatia',      accent: '#C060D8', quote: 'Order is just chaos waiting to happen.', special: '🌀' },
-    { id: 'min',         name: 'Min',          accent: '#E0B040', quote: "Small doesn't mean harmless." },
-    { id: 'misa',        name: 'Misa',         accent: '#E07070', quote: "I fight with everything I've got." },
-    { id: 'mortimer',    name: 'Mortimer',     accent: '#70B870', quote: 'Death is just a new beginning.' },
-    { id: 'mrak',        name: 'Mrak',         accent: '#C04040', quote: 'Rage is a weapon. Mine is loaded.' },
-    { id: 'nebkher',     name: 'Nebkher',      accent: '#D0A858', quote: 'The sands have witnessed my glory.' },
-    { id: 'razzle',      name: 'Razzle',       accent: '#F04880', quote: 'Make it dramatic — or why bother?' },
-    { id: 'rowenna',     name: 'Rowenna',      accent: '#D07840', quote: "I've faced worse. Much worse." },
-    { id: 'sabina',      name: 'Sabina',       accent: '#88B8D8', quote: 'Calm waters run the deepest.' },
-    { id: 'silverarrow', name: 'Silver Arrow', accent: '#B8D0E8', quote: 'One shot. One moment. One victory.' },
-    { id: 'snorri',      name: 'Snorri',       accent: '#A8C0D8', quote: "I've survived worse. This is just Tuesday." },
-    { id: 'swift',       name: 'Swift',        accent: '#78D898', quote: 'No fortress stands in my way.' },
-    { id: 'takahide',    name: 'Takahide',     accent: '#C89060', quote: 'Speed is the only armor I need.' },
-    { id: 'tali',        name: 'Tali',         accent: '#D8A0C0', quote: 'Strike from shadow, vanish like smoke.' },
-    { id: 'tigerclaw',   name: 'Tiger Claw',   accent: '#E8A030', quote: 'The cold never reaches my heart.' },
-    { id: 'trinkets',    name: 'Trinkets',     accent: '#C8D060', quote: "Everything is a tool if you're creative enough." },
-    { id: 'ursafar',     name: 'Ursafar',      accent: '#A87840', quote: "They called it a fortress. I called it a door." },
-    { id: 'wasp',        name: 'Wasp',         accent: '#88C840', quote: 'Fear is just weakness with a name.' },
-    { id: 'whisper',     name: 'Whisper',      accent: '#A888D0', quote: 'Pain is just information.' },
-    { id: 'widget',      name: 'Widget',       accent: '#58C8E0', quote: 'Knowledge is the sharpest weapon.' },
-    { id: 'wuk',         name: 'Wuk',          accent: '#E06840', quote: "Lucky? I prefer 'prepared'." },
-    { id: 'xargatha',    name: 'Xargatha',     accent: '#B04060', quote: 'The jungle has teeth. So do I.' },
+    { id: 'arien',       name: 'Arien',        subtitle: 'the Tidemaster',    accent: '#70B858', quote: 'Every tide turns at my command.' },
+    { id: 'bain',        name: 'Bain',          subtitle: 'the Bounty Hunter', accent: '#6888C8', quote: 'The price is set. You just can\'t afford it.' },
+    { id: 'brogan',      name: 'Brogan',        subtitle: 'the Destroyer',     accent: '#B07040', quote: 'Walls are just doors I haven\'t made yet.' },
+    { id: 'brynn',       name: 'Brynn',         subtitle: 'the Seeker',        accent: '#D07898', quote: 'The answer is out there. I will find it.' },
+    { id: 'cutter',      name: 'Cutter',        subtitle: 'the Sky Pirate',    accent: '#50A8C0', quote: 'The sky belongs to those bold enough to take it.' },
+    { id: 'dodger',      name: 'Dodger',        subtitle: 'the Warlock',       accent: '#C0A830', quote: 'Reality is a suggestion I rarely follow.' },
+    { id: 'emmit',       name: 'Emmitt',        subtitle: 'the Traveler',      accent: '#8080CC', special: '⏪', quote: 'I\'ve seen how this ends. Let\'s try a different path.' },
+    { id: 'garrus',      name: 'Garrus',        subtitle: 'the Gladiator',     accent: '#9080C0', quote: 'The arena remembers every name. Will yours survive?' },
+    { id: 'gydion',      name: 'Gydion',        subtitle: 'the Archwizard',    accent: '#58C0A0', quote: 'Power is not given. It is studied, mastered, wielded.' },
+    { id: 'hanu',        name: 'Hanu',          subtitle: 'the Trickster',     accent: '#CC4030', special: '⚡', quote: 'Blink and you\'ll miss me. I\'ll already be there.' },
+    { id: 'ignatia',     name: 'Ignatia',       subtitle: 'the Mad',           accent: '#C060D8', special: '🌀', quote: 'Order is just chaos that hasn\'t woken up yet.' },
+    { id: 'min',         name: 'Min',           subtitle: 'the Dragonmon',     accent: '#E0B040', quote: 'We hunt together, or not at all.' },
+    { id: 'misa',        name: 'Misa',          subtitle: 'the Samurai',       accent: '#E07070', quote: 'A single breath. A single cut.' },
+    { id: 'mortimer',    name: 'Mortimer',      subtitle: 'the Awakener',      accent: '#70B870', quote: 'Death is not an ending. It is an introduction.' },
+    { id: 'mrak',        name: 'Mrak',          subtitle: 'the Rockshaper',    accent: '#C04040', quote: 'The stone speaks to me. I simply translate.' },
+    { id: 'nebkher',     name: 'NebKher',       subtitle: 'the Harbinger',     accent: '#D0A858', quote: 'What has been written cannot be unwritten.' },
+    { id: 'razzle',      name: 'Razzle',        subtitle: 'the Ringmaster',    accent: '#F04880', quote: 'Step right in — and pray the exit is real.' },
+    { id: 'rowenna',     name: 'Rowenna',       subtitle: 'the Vanguard',      accent: '#D07840', quote: 'I go first so others don\'t have to.' },
+    { id: 'sabina',      name: 'Sabina',        subtitle: 'the Commander',     accent: '#88B8D8', quote: 'Victory is not luck. It\'s preparation meeting chaos.' },
+    { id: 'silverarrow', name: 'Silverarrow',   subtitle: 'the Pathfinder',    accent: '#B8D0E8', quote: 'I\'ve mapped every path. This is the one we take.' },
+    { id: 'snorri',      name: 'Snorri',        subtitle: 'the Runescribe',    accent: '#A8C0D8', quote: 'The runes do not lie. Only fools ignore them.' },
+    { id: 'swift',       name: 'Swift',         subtitle: 'the Sharpshooter',  accent: '#78D898', quote: 'One shot. One truth.' },
+    { id: 'takahide',    name: 'Takahide',      subtitle: 'the Warlord',       accent: '#C89060', quote: 'Nations kneel. Armies follow.' },
+    { id: 'tali',        name: 'Tali',          subtitle: 'the Spirit Caller', accent: '#D8A0C0', quote: 'The spirits do not forgive those who disturb their rest.' },
+    { id: 'tigerclaw',   name: 'Tigerclaw',     subtitle: 'the Cutpurse',      accent: '#E8A030', quote: 'What\'s yours is yours — until I decide otherwise.' },
+    { id: 'trinkets',    name: 'Trinkets',      subtitle: 'the Scavenger',     accent: '#C8D060', quote: 'One guard\'s trash is my greatest treasure.' },
+    { id: 'ursafar',     name: 'Ursafar',       subtitle: 'the Savage',        accent: '#A87840', quote: 'Pain is a teacher. I have learned enough.' },
+    { id: 'wasp',        name: 'Wasp',          subtitle: 'the Warmaiden',     accent: '#88C840', quote: 'They called it reckless. I call it first.' },
+    { id: 'whisper',     name: 'Whisper',       subtitle: 'the Outcast',       accent: '#A888D0', quote: 'The loudest statement is silence.' },
+    { id: 'widget',      name: 'Widget & Pyro', subtitle: 'the Scavenger Duo', accent: '#58C8E0', quote: 'Pyro says hi. You should probably run.' },
+    { id: 'wuk',         name: 'Wuk',           subtitle: 'the Grove Guardian',accent: '#E06840', quote: 'The grove does not forgive trespassers.' },
+    { id: 'xargatha',    name: 'Xargatha',      subtitle: 'the Changed',       accent: '#B04060', quote: 'I have shed what I was. What remains is power.' },
   ];
 
   function charData(id) {
@@ -1343,7 +1343,6 @@
     const banner  = $('initiativeCharBanner');
     const title   = $('initiativePhaseTitle');
     const ability = $('initiativeCharAbility');
-    const quote   = $('initiativeCharQuote');
     if (!view || !banner) return;
     const isOnline = gameMode === 'host' || gameMode === 'player';
     if (!isOnline || !myCharacter) {
@@ -1365,12 +1364,15 @@
     }
     $('initiativeCharImg').src = charAvatarPath(c.id);
     $('initiativeCharName').textContent = (c.special ? c.special + ' ' : '') + c.name;
+    const subtitle = $('initiativeCharSubtitle');
+    if (subtitle) { subtitle.textContent = c.subtitle || ''; }
     if (ability) {
       const abilityText = c.id === 'emmit' ? 'Reverse Time' : c.id === 'hanu' ? 'Hurry Up' : c.id === 'ignatia' ? 'Chaos Incarnate' : '';
-      ability.textContent = abilityText;
+      ability.textContent = abilityText ? '— ' + abilityText : '';
       ability.style.display = abilityText ? '' : 'none';
     }
-    if (quote) quote.textContent = c.quote ? `"${c.quote}"` : '';
+    const quote = $('initiativeCharQuote');
+    if (quote) { quote.textContent = c.quote ? '“' + c.quote + '”' : ''; }
     banner.style.display = 'block';
     view.classList.add('char-themed');
     view.style.setProperty('--char-accent', c.accent);

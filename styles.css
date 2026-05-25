@@ -1068,7 +1068,7 @@ input[type=text]::placeholder { color: var(--muted); }
   margin: calc(-1 * clamp(14px, 4vw, 24px)) calc(-1 * clamp(12px, 4vw, 20px)) 20px;
   position: relative;
   overflow: hidden;
-  height: clamp(200px, 50vw, 280px);
+  height: clamp(230px, 55vw, 320px);
   border-radius: 0;
 }
 .initiative-char-banner img {
@@ -1107,6 +1107,7 @@ input[type=text]::placeholder { color: var(--muted); }
   position: absolute;
   bottom: 14px;
   left: 15px;
+  right: 15px;
   z-index: 3;
   pointer-events: none;
 }
@@ -1118,26 +1119,35 @@ input[type=text]::placeholder { color: var(--muted); }
   text-shadow: 0 1px 12px rgba(0,0,0,0.98), 0 0 32px rgba(0,0,0,0.7);
   letter-spacing: 0.05em;
 }
+.char-banner-subtitle {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--char-accent, rgba(255,255,255,0.80));
+  text-shadow: 0 1px 8px rgba(0,0,0,0.95);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
 .char-banner-ability {
   display: block;
   font-size: 11px;
   font-weight: 700;
   color: var(--char-accent, rgba(255,255,255,0.75));
-  text-shadow: 0 1px 8px rgba(0,0,0,0.95);
-  letter-spacing: 0.10em;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.9);
+  letter-spacing: 0.08em;
   text-transform: uppercase;
-  margin-top: 3px;
-  opacity: 0.95;
+  margin-top: 1px;
+  opacity: 0.90;
 }
 .char-banner-quote {
   display: block;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   font-style: italic;
-  color: rgba(255,255,255,0.72);
+  color: rgba(255,255,255,0.78);
   text-shadow: 0 1px 8px rgba(0,0,0,0.95);
-  margin-top: 5px;
-  letter-spacing: 0.01em;
+  margin-top: 6px;
   line-height: 1.4;
 }
 
