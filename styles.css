@@ -882,6 +882,15 @@ input[type=text]::placeholder { color: var(--muted); }
   background: rgba(190,60,220,0.12);
   box-shadow: 0 0 12px rgba(190,60,220,0.30);
 }
+/* Tigerclaw — gold / poison */
+.tigerclaw-ability {
+  border-color: rgba(232,160,48,0.45);
+  color: #E8A030;
+}
+.tigerclaw-ability:hover {
+  background: rgba(232,160,48,0.13);
+  box-shadow: 0 0 12px rgba(232,160,48,0.30);
+}
 
 /* Hurry Up target picker */
 .hurry-target-btn {
@@ -904,6 +913,39 @@ input[type=text]::placeholder { color: var(--muted); }
 .hurry-target-btn:hover {
   background: var(--orange-bg);
   border-color: var(--orange-border);
+}
+
+/* Poison token target picker */
+.poison-target-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.poison-target-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.poison-penalty-btn {
+  border: 1px solid rgba(232,160,48,0.45);
+  border-radius: 6px;
+  background: transparent;
+  color: #E8A030;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all .12s;
+  flex-shrink: 0;
+}
+.poison-penalty-btn:hover {
+  background: rgba(232,160,48,0.15);
+  border-color: #E8A030;
+  box-shadow: 0 0 8px rgba(232,160,48,0.30);
 }
 
 /* Character badge shown in player lists */

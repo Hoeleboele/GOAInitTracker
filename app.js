@@ -457,8 +457,12 @@
     // Ignatia — Chaos Incarnate: Ignatia player; host/offline if Ignatia is in game
     const canChaos = myCharacter === 'ignatia' || ((isHost || isOffline) && hasIgnatia);
 
+    // Tigerclaw — Poison Token: only during Tigerclaw's own turn
+    const tigerclawOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'tigerclaw');
+    const canPoison = tigerclawOnActive && (myCharacter === 'tigerclaw' || isHost || isOffline);
+
     const panel = $('abilityPanel');
-    if (!canHurryUp && !canChaos) { panel.style.display = 'none'; return; }
+    if (!canHurryUp && !canChaos && !canPoison) { panel.style.display = 'none'; return; }
 
     panel.style.display = 'flex';
     let html = '';
@@ -468,6 +472,9 @@
     if (canChaos) {
       html += `<button class="ability-btn ignatia-ability" id="btnChaosIncarnate">🌀 Chaos Incarnate</button>`;
     }
+    if (canPoison) {
+      html += `<button class="ability-btn tigerclaw-ability" id="btnPoisonToken">☠️ Poison Token</button>`;
+    }
     panel.innerHTML = html;
 
     if (canHurryUp) {
@@ -476,6 +483,9 @@
     if (canChaos) {
       $('btnChaosIncarnate').addEventListener('click', () =>
         sendToHost({ type: 'use_chaos_incarnate' }));
+    }
+    if (canPoison) {
+      $('btnPoisonToken').addEventListener('click', showPoisonPanel);
     }
   }
 
@@ -552,6 +562,70 @@
       payload: { turns: state.turns, currentTurnIndex: cur,
                  initiativeToken: state.initiativeToken, mixedTies: state.mixedTies,
                  reverseInitiative: state.reverseInitiative } });
+    render();
+  }
+
+  function showPoisonPanel() {
+    $('poisonPanel').style.display = 'block';
+    const tigerPlayer = Object.values(state.players).find(p => p.character === 'tigerclaw');
+    const tigerTeam   = tigerPlayer ? tigerPlayer.team : null;
+    const targets = Object.values(state.players).filter(p =>
+      p.isConnected && p.team !== tigerTeam
+    );
+    if (!targets.length) {
+      $('poisonTargets').innerHTML = '<p style="color:var(--muted);font-size:13px;margin:4px 0">No enemy players.</p>';
+    } else {
+      $('poisonTargets').innerHTML = targets.map(p =>
+        `<div class="poison-target-row">
+          <span class="poison-target-name">
+            <span class="team-dot ${p.team}"></span>${esc(p.name)}
+            ${p.character ? `<span class="char-badge">${charLabel(p.character)}</span>` : ''}
+          </span>
+          <button class="poison-penalty-btn" data-id="${p.id}" data-penalty="1">-1</button>
+          <button class="poison-penalty-btn" data-id="${p.id}" data-penalty="2">-2</button>
+        </div>`
+      ).join('');
+      $('poisonTargets').querySelectorAll('.poison-penalty-btn').forEach(btn =>
+        btn.addEventListener('click', () => {
+          $('poisonPanel').style.display = 'none';
+          sendToHost({ type: 'use_poison', payload: { targetId: btn.dataset.id, penalty: +btn.dataset.penalty } });
+        })
+      );
+    }
+  }
+
+  function applyPoison(targetId, penalty) {
+    const target = state.players[targetId];
+    if (!target) return;
+    const newInit = target.initiative - penalty;
+    const cur     = state.currentTurnIndex;
+    state.players[targetId] = { ...target, initiative: newInit };
+    // Reposition in remaining pending turns if target hasn't gone yet
+    for (let i = state.turns.length - 1; i > cur; i--) {
+      const t = state.turns[i];
+      if (t.status !== 'completed' && (t.players || []).some(p => p.id === targetId)) {
+        t.players = t.players.filter(p => p.id !== targetId);
+        if (t.players.length === 0) state.turns.splice(i, 1);
+        let insertAt = state.turns.length;
+        for (let j = cur + 1; j < state.turns.length; j++) {
+          const before = state.reverseInitiative
+            ? state.turns[j].initiative > newInit
+            : state.turns[j].initiative < newInit;
+          if (before) { insertAt = j; break; }
+        }
+        state.turns.splice(insertAt, 0, {
+          order:      0,
+          players:    [{ id: targetId, name: target.name, team: target.team }],
+          initiative: newInit,
+          status:     'pending',
+          doneIds:    [],
+        });
+        break;
+      }
+    }
+    state.turns.forEach((t, i) => { t.order = i + 1; });
+    toast(`☠️ ${esc(target.name)} poisoned! -${penalty} initiative (now ${newInit})`);
+    broadcast({ type: 'state_sync', payload: serializeState() });
     render();
   }
 
@@ -930,6 +1004,10 @@
       }
       case 'use_hurry_up': {
         applyHurryUp(msg.payload.targetId);
+        break;
+      }
+      case 'use_poison': {
+        applyPoison(msg.payload.targetId, msg.payload.penalty);
         break;
       }
       case 'use_chaos_incarnate': {
@@ -1421,6 +1499,10 @@
 
   $('btnCancelHurryUp').addEventListener('click', () => {
     $('hurryUpPanel').style.display = 'none';
+  });
+
+  $('btnCancelPoison').addEventListener('click', () => {
+    $('poisonPanel').style.display = 'none';
   });
 
   // ── Boot ────────────────────────────────────────────────────────────────
