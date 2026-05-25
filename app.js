@@ -226,7 +226,7 @@
       case 'initiative':
         show('viewInitiative');
         applyCharacterTheme();
-        $('initiativeDisplay').textContent = initValue || '—';
+        $('initiativeDisplay').textContent = initValue || 'Enter initiative';
         $('btnLock').disabled = !initValue || initLocked;
         if (gameMode === 'offline') {
           const op = offlinePlayers[offlineInitIdx];
@@ -456,13 +456,13 @@
     const activeIds    = active ? (active.players || []).map(p => p.id) : [];
     const hanuOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'hanu');
     const canHurryUp   = (myCharacter === 'hanu' && hanuOnActive)
-                      || (isHost && hasHanu)
+                      || (isHost && hanuOnActive)
                       || (isOffline && hanuOnActive);
 
-    // Ignatia — Chaos Incarnate: Ignatia player; online host always; offline only on Ignatia's turn
+    // Ignatia — Chaos Incarnate: Ignatia player; host when Ignatia is active; offline only on Ignatia's turn
     const ignatiaOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'ignatia');
     const canChaos = (myCharacter === 'ignatia')
-                  || (isHost && hasIgnatia)
+                  || (isHost && ignatiaOnActive)
                   || (isOffline && ignatiaOnActive);
 
     // Tigerclaw — Poison Token: only during Tigerclaw's own turn
@@ -833,7 +833,7 @@
 
   // ── Initiative pad ──────────────────────────────────────────────────────
   function updatePad() {
-    $('initiativeDisplay').textContent = initValue || '—';
+    $('initiativeDisplay').textContent = initValue || 'Enter initiative';
     $('btnLock').disabled = !initValue || initLocked;
   }
 
@@ -1458,6 +1458,7 @@
       return;
     }
     if (!myTeam) { toast('Select your team (Blue or Orange) first!'); return; }
+    if (!myCharacter) { toast('Pick a character first!'); return; }
     setStatus('Creating session…');
     tryHost(genCode());
   });
@@ -1535,6 +1536,12 @@
       $('joinForm').style.display    = 'none';
       $('landingMain').style.display = 'flex';
       toast('Select your team (Blue or Orange) first!');
+      return;
+    }
+    if (!myCharacter) {
+      $('joinForm').style.display    = 'none';
+      $('landingMain').style.display = 'flex';
+      toast('Pick a character first!');
       return;
     }
     const code = $('codeInput').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
