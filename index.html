@@ -16,7 +16,12 @@
       <h1>Guards of Atlantis II</h1>
       <p class="subtitle">Turn Initiative Tracker</p>
 
-      <div id="landingMain">
+      <div id="landingMode">
+        <button class="btn btn-primary" id="btnPlayOnline">🌐 Play Online</button>
+        <button class="btn btn-secondary" id="btnPlayOffline">🎮 Play Offline</button>
+      </div>
+
+      <div id="landingMain" style="display:none;flex-direction:column;">
         <input type="text" id="nameInput" placeholder="Your name" maxlength="20" autocomplete="off" />
 
         <div class="label" style="text-align:left;margin-top:4px;">Your team</div>
@@ -30,7 +35,7 @@
 
         <button class="btn btn-primary" id="btnHost">Host Session</button>
         <button class="btn btn-secondary" id="btnShowJoin">Join Session</button>
-        <button class="btn btn-ghost" id="btnOffline">Play Offline</button>
+        <button class="btn btn-ghost" id="btnBackToMode">← Back</button>
       </div>
 
       <div id="joinForm" style="display:none;">

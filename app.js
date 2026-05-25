@@ -167,7 +167,8 @@
     $('landing').style.display = 'flex';
     $('app').style.display     = 'none';
     $('joinForm').style.display        = 'none';
-    $('landingMain').style.display     = 'flex';
+    $('landingMode').style.display     = 'flex';
+    $('landingMain').style.display     = 'none';
     $('viewCharPick').style.display    = 'none';
     $('codeInput').value = '';
     // Reset team button visual state to match the (cleared) myTeam variable
@@ -1488,7 +1489,17 @@
     $('codeInput').focus();
   });
 
-  $('btnOffline').addEventListener('click', () => {
+  $('btnPlayOnline').addEventListener('click', () => {
+    $('landingMode').style.display = 'none';
+    $('landingMain').style.display = 'flex';
+  });
+
+  $('btnBackToMode').addEventListener('click', () => {
+    $('landingMain').style.display = 'none';
+    $('landingMode').style.display = 'flex';
+  });
+
+  $('btnPlayOffline').addEventListener('click', () => {
     gameMode           = 'offline';
     myId               = genId();
     offlineTokenChoice = 'blue';
@@ -1621,6 +1632,7 @@
   function showCharPicker() {
     renderCharPicker();
     $('landingMain').style.display  = 'none';
+    $('landingMode').style.display  = 'none';
     $('viewCharPick').style.display = 'flex';
   }
 
