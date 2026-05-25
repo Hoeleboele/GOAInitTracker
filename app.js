@@ -115,10 +115,7 @@
     return CHARACTERS.find(c => c.id === id) || null;
   }
 
-  const AVATAR_REST = new Set(['snorri','swift','takahide','tali','tigerclaw','trinkets','ursafar','wasp','whisper','widget','wuk','xargatha']);
-
   function charAvatarPath(id) {
-    if (AVATAR_REST.has(id)) return 'avatar_Rest/' + id + '.webp';
     return 'avatars_full/' + (id === 'emmit' ? 'emmitt' : id) + '.webp';
   }
 
