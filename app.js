@@ -1404,7 +1404,11 @@
       ability.style.display = abilityText ? '' : 'none';
     }
     const quote = $('initiativeCharQuote');
-    if (quote) { quote.textContent = c.quote ? '“' + c.quote + '”' : ''; }
+    if (quote) {
+      const pool = c.quotes && c.quotes.length ? c.quotes : [];
+      const picked = pool[Math.floor(Math.random() * pool.length)] || '';
+      quote.textContent = picked ? '“' + picked + '”' : '';
+    }
     banner.style.display = 'block';
     view.classList.add('char-themed');
     view.style.setProperty('--char-accent', c.accent);
