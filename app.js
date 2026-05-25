@@ -451,13 +451,18 @@
     const hasIgnatia = characterInGame('ignatia');
     const active     = state.turns[state.currentTurnIndex];
 
-    // Hanu — Hurry Up: Hanu player on their active turn; host/offline if Hanu is in game
+    // Hanu — Hurry Up: Hanu player on their active turn; online host always; offline only on Hanu's turn
     const activeIds    = active ? (active.players || []).map(p => p.id) : [];
     const hanuOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'hanu');
-    const canHurryUp   = (myCharacter === 'hanu' && hanuOnActive) || ((isHost || isOffline) && hasHanu);
+    const canHurryUp   = (myCharacter === 'hanu' && hanuOnActive)
+                      || (isHost && hasHanu)
+                      || (isOffline && hanuOnActive);
 
-    // Ignatia — Chaos Incarnate: Ignatia player; host/offline if Ignatia is in game
-    const canChaos = myCharacter === 'ignatia' || ((isHost || isOffline) && hasIgnatia);
+    // Ignatia — Chaos Incarnate: Ignatia player; online host always; offline only on Ignatia's turn
+    const ignatiaOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'ignatia');
+    const canChaos = (myCharacter === 'ignatia')
+                  || (isHost && hasIgnatia)
+                  || (isOffline && ignatiaOnActive);
 
     // Tigerclaw — Poison Token: only during Tigerclaw's own turn
     const tigerclawOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'tigerclaw');
@@ -504,12 +509,22 @@
   function showHurryUpPanel() {
     $('hurryUpPanel').style.display = 'block';
 
-    // Only show players who have a pending turn AFTER the current one, and exclude Hanu himself
+    // Only show players who have a pending turn AFTER the current one (or in the current
+    // mixed-tie's other-team pool), and exclude Hanu himself
     const cur = state.currentTurnIndex;
     const futureTurnPlayerIds = new Set();
     for (let i = cur + 1; i < state.turns.length; i++) {
       const t = state.turns[i];
       if (t.status !== 'completed') (t.players || []).forEach(p => futureTurnPlayerIds.add(p.id));
+    }
+    // If current turn is a mixed-tie slot, also include the other team's pool (they haven't gone yet)
+    const activeTurn = state.turns[cur];
+    if (activeTurn && activeTurn.mixedTieSlot) {
+      const tie = state.mixedTies[activeTurn.initiative];
+      if (tie) {
+        const otherTeam = activeTurn.teamTurn === 'blue' ? 'orange' : 'blue';
+        (tie[`${otherTeam}Pool`] || []).forEach(p => futureTurnPlayerIds.add(p.id));
+      }
     }
     const hanuPlayer = Object.values(state.players).find(p => p.character === 'hanu');
     const hanuId = hanuPlayer ? hanuPlayer.id : null;
@@ -541,7 +556,7 @@
     const NEW_INIT = 11;
     const cur      = state.currentTurnIndex;
 
-    // Remove target from any future pending turns
+    // Remove target from any future pending turns and from all mixed-tie pools
     for (let i = state.turns.length - 1; i > cur; i--) {
       const t = state.turns[i];
       if ((t.players || []).some(p => p.id === targetId)) {
@@ -549,6 +564,11 @@
         if (t.players.length === 0) state.turns.splice(i, 1);
       }
     }
+    Object.keys(state.mixedTies).forEach(init => {
+      const tie = state.mixedTies[+init];
+      tie.bluePool   = tie.bluePool.filter(p => p.id !== targetId);
+      tie.orangePool = tie.orangePool.filter(p => p.id !== targetId);
+    });
 
     state.players[targetId] = { ...target, initiative: NEW_INIT };
 
@@ -612,29 +632,31 @@
     const newInit = target.initiative - penalty;
     const cur     = state.currentTurnIndex;
     state.players[targetId] = { ...target, initiative: newInit };
-    // Reposition in remaining pending turns if target hasn't gone yet
+    // Remove from all future turn slots and mixed-tie pools
     for (let i = state.turns.length - 1; i > cur; i--) {
       const t = state.turns[i];
-      if (t.status !== 'completed' && (t.players || []).some(p => p.id === targetId)) {
+      if ((t.players || []).some(p => p.id === targetId)) {
         t.players = t.players.filter(p => p.id !== targetId);
         if (t.players.length === 0) state.turns.splice(i, 1);
-        let insertAt = state.turns.length;
-        for (let j = cur + 1; j < state.turns.length; j++) {
-          const before = state.reverseInitiative
-            ? state.turns[j].initiative > newInit
-            : state.turns[j].initiative < newInit;
-          if (before) { insertAt = j; break; }
-        }
-        state.turns.splice(insertAt, 0, {
-          order:      0,
-          players:    [{ id: targetId, name: target.name, team: target.team }],
-          initiative: newInit,
-          status:     'pending',
-          doneIds:    [],
-        });
-        break;
       }
     }
+    Object.keys(state.mixedTies).forEach(init => {
+      const tie = state.mixedTies[+init];
+      tie.bluePool   = tie.bluePool.filter(p => p.id !== targetId);
+      tie.orangePool = tie.orangePool.filter(p => p.id !== targetId);
+    });
+    // Re-insert at new initiative
+    let insertAt = state.turns.length;
+    for (let j = cur + 1; j < state.turns.length; j++) {
+      const before = state.reverseInitiative
+        ? state.turns[j].initiative > newInit
+        : state.turns[j].initiative < newInit;
+      if (before) { insertAt = j; break; }
+    }
+    state.turns.splice(insertAt, 0, {
+      order: 0, players: [{ id: targetId, name: target.name, team: target.team }],
+      initiative: newInit, status: 'pending', doneIds: [],
+    });
     state.turns.forEach((t, i) => { t.order = i + 1; });
     toast(`☠️ ${esc(target.name)} poisoned! -${penalty} initiative (now ${newInit})`);
     broadcast({ type: 'state_sync', payload: serializeState() });
@@ -680,29 +702,31 @@
     if (!target) return;
     const cur = state.currentTurnIndex;
     state.players[targetId] = { ...target, initiative: newInit };
-    // Reposition in remaining pending turns
+    // Remove from all future turn slots and mixed-tie pools
     for (let i = state.turns.length - 1; i > cur; i--) {
       const t = state.turns[i];
-      if (t.status !== 'completed' && (t.players || []).some(p => p.id === targetId)) {
+      if ((t.players || []).some(p => p.id === targetId)) {
         t.players = t.players.filter(p => p.id !== targetId);
         if (t.players.length === 0) state.turns.splice(i, 1);
-        let insertAt = state.turns.length;
-        for (let j = cur + 1; j < state.turns.length; j++) {
-          const before = state.reverseInitiative
-            ? state.turns[j].initiative > newInit
-            : state.turns[j].initiative < newInit;
-          if (before) { insertAt = j; break; }
-        }
-        state.turns.splice(insertAt, 0, {
-          order:      0,
-          players:    [{ id: targetId, name: target.name, team: target.team }],
-          initiative: newInit,
-          status:     'pending',
-          doneIds:    [],
-        });
-        break;
       }
     }
+    Object.keys(state.mixedTies).forEach(init => {
+      const tie = state.mixedTies[+init];
+      tie.bluePool   = tie.bluePool.filter(p => p.id !== targetId);
+      tie.orangePool = tie.orangePool.filter(p => p.id !== targetId);
+    });
+    // Re-insert at new initiative
+    let insertAt = state.turns.length;
+    for (let j = cur + 1; j < state.turns.length; j++) {
+      const before = state.reverseInitiative
+        ? state.turns[j].initiative > newInit
+        : state.turns[j].initiative < newInit;
+      if (before) { insertAt = j; break; }
+    }
+    state.turns.splice(insertAt, 0, {
+      order: 0, players: [{ id: targetId, name: target.name, team: target.team }],
+      initiative: newInit, status: 'pending', doneIds: [],
+    });
     state.turns.forEach((t, i) => { t.order = i + 1; });
     toast(`⚔️ ${esc(target.name)}'s initiative changed to ${newInit}!`);
     broadcast({ type: 'state_sync', payload: serializeState() });
