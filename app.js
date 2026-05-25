@@ -527,6 +527,15 @@
       (tie.bluePool   || []).forEach(p => futureTurnPlayerIds.add(p.id));
       (tie.orangePool || []).forEach(p => futureTurnPlayerIds.add(p.id));
     });
+    // Also include players in the current slot who haven't ended their turn yet
+    // (same-initiative teammates in a simultaneous slot)
+    const currentTurn = state.turns[cur];
+    if (currentTurn) {
+      const doneSet = new Set(currentTurn.doneIds || []);
+      (currentTurn.players || []).forEach(p => {
+        if (!doneSet.has(p.id)) futureTurnPlayerIds.add(p.id);
+      });
+    }
     const hanuPlayer = Object.values(state.players).find(p => p.character === 'hanu');
     const hanuId = hanuPlayer ? hanuPlayer.id : null;
 
