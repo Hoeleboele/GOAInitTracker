@@ -550,34 +550,59 @@
     }
   }
 
+  // Removes a player from all future turn slots and mixed-tie pools.
+  // When splicing an empty mixedTieSlot, rescues the other team's pool as a plain pending slot.
+  function purgePlayerFromUpcoming(targetId) {
+    const cur = state.currentTurnIndex;
+    for (let i = state.turns.length - 1; i > cur; i--) {
+      const t = state.turns[i];
+      if (!(t.players || []).some(p => p.id === targetId)) continue;
+      t.players = t.players.filter(p => p.id !== targetId);
+      if (t.players.length === 0) {
+        state.turns.splice(i, 1);
+        // If this was a mixed-tie slot, rescue the partner team's pool players
+        if (t.mixedTieSlot) {
+          const tie = state.mixedTies[t.initiative];
+          if (tie) {
+            const otherTeam = t.teamTurn === 'blue' ? 'orange' : 'blue';
+            const rescued = (tie[`${otherTeam}Pool`] || []).filter(p => p.id !== targetId);
+            if (rescued.length > 0) {
+              state.turns.splice(i, 0, {
+                order:      0,
+                players:    rescued.map(p => ({ id: p.id, name: p.name, team: p.team })),
+                initiative: t.initiative,
+                status:     'pending',
+                doneIds:    [],
+              });
+            }
+            delete state.mixedTies[t.initiative];
+          }
+        }
+      }
+    }
+    // Remove from all mixed-tie pools
+    Object.keys(state.mixedTies).forEach(init => {
+      const tie = state.mixedTies[+init];
+      tie.bluePool   = tie.bluePool.filter(p => p.id !== targetId);
+      tie.orangePool = tie.orangePool.filter(p => p.id !== targetId);
+    });
+  }
+
   function applyHurryUp(targetId) {
     const target = state.players[targetId];
     if (!target) return;
     const NEW_INIT = 11;
     const cur      = state.currentTurnIndex;
 
-    // Remove target from any future pending turns and from all mixed-tie pools
-    for (let i = state.turns.length - 1; i > cur; i--) {
-      const t = state.turns[i];
-      if ((t.players || []).some(p => p.id === targetId)) {
-        t.players = t.players.filter(p => p.id !== targetId);
-        if (t.players.length === 0) state.turns.splice(i, 1);
-      }
-    }
-    Object.keys(state.mixedTies).forEach(init => {
-      const tie = state.mixedTies[+init];
-      tie.bluePool   = tie.bluePool.filter(p => p.id !== targetId);
-      tie.orangePool = tie.orangePool.filter(p => p.id !== targetId);
-    });
-
+    purgePlayerFromUpcoming(targetId);
     state.players[targetId] = { ...target, initiative: NEW_INIT };
 
     // Find insertion position based on sort order
     let insertAt = state.turns.length;
     for (let i = cur + 1; i < state.turns.length; i++) {
       const before = state.reverseInitiative
-        ? state.turns[i].initiative > NEW_INIT   // low→high: insert before higher
-        : state.turns[i].initiative < NEW_INIT;  // high→low: insert before lower
+        ? state.turns[i].initiative > NEW_INIT
+        : state.turns[i].initiative < NEW_INIT;
       if (before) { insertAt = i; break; }
     }
     state.turns.splice(insertAt, 0, {
@@ -632,19 +657,7 @@
     const newInit = target.initiative - penalty;
     const cur     = state.currentTurnIndex;
     state.players[targetId] = { ...target, initiative: newInit };
-    // Remove from all future turn slots and mixed-tie pools
-    for (let i = state.turns.length - 1; i > cur; i--) {
-      const t = state.turns[i];
-      if ((t.players || []).some(p => p.id === targetId)) {
-        t.players = t.players.filter(p => p.id !== targetId);
-        if (t.players.length === 0) state.turns.splice(i, 1);
-      }
-    }
-    Object.keys(state.mixedTies).forEach(init => {
-      const tie = state.mixedTies[+init];
-      tie.bluePool   = tie.bluePool.filter(p => p.id !== targetId);
-      tie.orangePool = tie.orangePool.filter(p => p.id !== targetId);
-    });
+    purgePlayerFromUpcoming(targetId);
     // Re-insert at new initiative
     let insertAt = state.turns.length;
     for (let j = cur + 1; j < state.turns.length; j++) {
@@ -702,19 +715,7 @@
     if (!target) return;
     const cur = state.currentTurnIndex;
     state.players[targetId] = { ...target, initiative: newInit };
-    // Remove from all future turn slots and mixed-tie pools
-    for (let i = state.turns.length - 1; i > cur; i--) {
-      const t = state.turns[i];
-      if ((t.players || []).some(p => p.id === targetId)) {
-        t.players = t.players.filter(p => p.id !== targetId);
-        if (t.players.length === 0) state.turns.splice(i, 1);
-      }
-    }
-    Object.keys(state.mixedTies).forEach(init => {
-      const tie = state.mixedTies[+init];
-      tie.bluePool   = tie.bluePool.filter(p => p.id !== targetId);
-      tie.orangePool = tie.orangePool.filter(p => p.id !== targetId);
-    });
+    purgePlayerFromUpcoming(targetId);
     // Re-insert at new initiative
     let insertAt = state.turns.length;
     for (let j = cur + 1; j < state.turns.length; j++) {
