@@ -927,3 +927,189 @@ input[type=text]::placeholder { color: var(--muted); }
   flex-shrink: 0;
   max-width: 88px;
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   CHARACTER PICKER (landing page)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+#viewCharPick {
+  display: none;
+  flex-direction: column;
+}
+
+.char-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  overflow-y: auto;
+  max-height: min(420px, 58vh);
+  padding-bottom: 4px;
+}
+
+.char-pick-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  border: 2px solid rgba(244,238,230,0.10);
+  border-radius: 10px;
+  background: rgba(28,22,14,0.70);
+  padding: 6px 4px 8px;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, box-shadow .15s;
+  text-align: center;
+}
+.char-pick-card:hover {
+  border-color: rgba(200,160,40,0.38);
+  background: rgba(200,160,40,0.07);
+}
+.char-pick-card.selected {
+  border-color: rgba(200,160,40,0.65);
+  background: rgba(200,160,40,0.13);
+  box-shadow: 0 0 14px rgba(200,160,40,0.22);
+}
+
+.char-pick-img-wrap {
+  width: 100%;
+  aspect-ratio: 5 / 2;
+  overflow: hidden;
+  border-radius: 6px;
+  background: rgba(0,0,0,0.30);
+}
+.char-pick-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
+}
+
+.char-pick-no-avatar {
+  width: 100%;
+  aspect-ratio: 5 / 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  color: var(--muted);
+  border-radius: 6px;
+  border: 1px dashed rgba(244,238,230,0.14);
+}
+
+.char-pick-name {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.25;
+  padding: 0 2px;
+}
+
+/* -- Selected char badge on landing -- */
+.selected-char-display {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 2px solid rgba(200,160,40,0.42);
+  border-radius: 10px;
+  background: rgba(200,160,40,0.08);
+  overflow: hidden;
+  margin-top: 10px;
+  cursor: pointer;
+}
+.selchar-avatar {
+  width: 76px;
+  height: 38px;
+  object-fit: cover;
+  object-position: center 18%;
+  flex-shrink: 0;
+  display: block;
+}
+.selchar-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.selchar-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--scroll-lt);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.selchar-ability {
+  font-size: 11px;
+  color: var(--muted);
+}
+.selchar-clear {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 15px;
+  cursor: pointer;
+  padding: 8px 12px;
+  flex-shrink: 0;
+  transition: color .12s;
+  line-height: 1;
+}
+.selchar-clear:hover { color: var(--text); }
+
+/* ===============================================================================
+   INITIATIVE VIEW -- CHARACTER BANNER & THEMING
+   =============================================================================== */
+
+.initiative-char-banner {
+  margin: calc(-1 * clamp(14px, 4vw, 24px)) calc(-1 * clamp(12px, 4vw, 20px)) 18px;
+  position: relative;
+  overflow: hidden;
+  height: clamp(140px, 28vw, 200px);
+  border-radius: 0;
+}
+.initiative-char-banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  display: block;
+}
+.initiative-char-banner::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(19,16,13,0.04) 0%,
+    rgba(19,16,13,0.50) 65%,
+    rgba(19,16,13,0.93) 100%
+  );
+  pointer-events: none;
+}
+.char-banner-overlay {
+  position: absolute;
+  bottom: 11px;
+  left: 15px;
+  z-index: 1;
+  font-size: 17px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 1px 10px rgba(0,0,0,0.95), 0 0 28px rgba(0,0,0,0.6);
+  letter-spacing: 0.04em;
+  pointer-events: none;
+}
+
+/* Accent theming on the initiative view */
+#viewInitiative.char-themed .btn-primary {
+  background: var(--char-accent, var(--scroll));
+  border-color: var(--char-accent, var(--scroll-dk));
+  color: rgba(10,8,6,0.90);
+  box-shadow: 0 4px 20px var(--char-accent-dim, rgba(0,0,0,0.2));
+}
+#viewInitiative.char-themed .btn-primary:not(:disabled):hover {
+  filter: brightness(1.12);
+}
+#viewInitiative.char-themed .number-display {
+  border-color: var(--char-accent, var(--scroll));
+}
+

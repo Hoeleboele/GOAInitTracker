@@ -11,7 +11,7 @@
   let myId        = '';
   let myName      = '';
   let myTeam      = '';         // 'blue' | 'orange'
-  let myCharacter  = '';         // 'emmit' | 'hanu' | 'ignatia' | ''
+  let myCharacter  = '';         // any character id from CHARACTERS, or ''
   let hostTokenChoice  = 'blue'; // host only: which team starts with token
   let hostManagesTurns = false;   // host only: host manually ends each turn
 
@@ -76,11 +76,45 @@
   }
 
   // ── Character helpers ────────────────────────────────────────────────────
+  const CHARACTERS = [
+    { id: 'arien',       name: 'Arien',       accent: '#70B858' },
+    { id: 'bain',        name: 'Bain',         accent: '#6888C8' },
+    { id: 'brogan',      name: 'Brogan',       accent: '#B07040' },
+    { id: 'brynn',       name: 'Brynn',        accent: '#D07898' },
+    { id: 'cutter',      name: 'Cutter',       accent: '#50A8C0' },
+    { id: 'dodger',      name: 'Dodger',       accent: '#C0A830' },
+    { id: 'emmit',       name: 'Emmit',        accent: '#8080CC', special: '⏪' },
+    { id: 'garrus',      name: 'Garrus',       accent: '#9080C0' },
+    { id: 'gydion',      name: 'Gydion',       accent: '#58C0A0' },
+    { id: 'hanu',        name: 'Hanu',         accent: '#CC4030', special: '⚡' },
+    { id: 'ignatia',     name: 'Ignatia',      accent: '#C060D8', special: '🌀' },
+    { id: 'min',         name: 'Min',          accent: '#E0B040' },
+    { id: 'misa',        name: 'Misa',         accent: '#E07070' },
+    { id: 'mortimer',    name: 'Mortimer',     accent: '#70B870' },
+    { id: 'mrak',        name: 'Mrak',         accent: '#C04040' },
+    { id: 'nebkher',     name: 'Nebkher',      accent: '#D0A858' },
+    { id: 'razzle',      name: 'Razzle',       accent: '#F04880' },
+    { id: 'rowenna',     name: 'Rowenna',      accent: '#D07840' },
+    { id: 'sabina',      name: 'Sabina',       accent: '#88B8D8' },
+    { id: 'silverarrow', name: 'Silver Arrow', accent: '#B8D0E8' },
+  ];
+
+  function charData(id) {
+    return CHARACTERS.find(c => c.id === id) || null;
+  }
+
+  function charAvatarPath(id) {
+    return 'avatars_full/' + (id === 'emmit' ? 'emmitt' : id) + '.webp';
+  }
+
   function characterInGame(char) {
     return Object.values(state.players).some(p => p.character === char);
   }
+
   function charLabel(char) {
-    return { emmit: '⏪ Emmit', hanu: '⚡ Hanu', ignatia: '🌀 Ignatia' }[char] || '';
+    const c = charData(char);
+    if (!c) return '';
+    return (c.special ? c.special + ' ' : '') + c.name;
   }
 
   // ── Show / hide ─────────────────────────────────────────────────────────
@@ -89,6 +123,7 @@
     $('app').style.display     = 'none';
     $('joinForm').style.display        = 'none';
     $('landingMain').style.display     = 'flex';
+    $('viewCharPick').style.display    = 'none';
     $('codeInput').value = '';
     setStatus('');
   }
@@ -145,6 +180,7 @@
 
       case 'initiative':
         show('viewInitiative');
+        applyCharacterTheme();
         $('initiativeDisplay').textContent = initValue || '—';
         $('btnLock').disabled = !initValue || initLocked;
         if (gameMode === 'offline') {
@@ -1087,18 +1123,15 @@
     gameMode    = null;
     sessionCode = myId = myName = myTeam = '';
     myCharacter = '';
+    updateSelectedCharDisplay();
     offlinePlayers     = [];
     offlineInitIdx     = 0;
     offlineTokenChoice = 'blue';
     hostManagesTurns   = false;
     if ($('chkHostTurns')) $('chkHostTurns').checked = false;
-    // Reset character buttons
-    ['btnCharNone','btnCharEmmit','btnCharHanu','btnCharIgnatia'].forEach(id => {
-      const el = $(id); if (el) el.classList.remove('selected');
-    });
-    const none = $('btnCharNone'); if (none) none.classList.add('selected');
     state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {}, reverseInitiative: false };
     resetInitPad();
+    applyCharacterTheme();
   }
 
   // ── Landing wiring ───────────────────────────────────────────────────────
@@ -1240,19 +1273,91 @@
   });
 
   // ── Character selection ───────────────────────────────────────────────
-  const charBtns = {
-    btnCharNone:    '',
-    btnCharEmmit:   'emmit',
-    btnCharHanu:    'hanu',
-    btnCharIgnatia: 'ignatia',
-  };
-  Object.entries(charBtns).forEach(([btnId, char]) => {
-    $(btnId).addEventListener('click', () => {
-      myCharacter = char;
-      Object.keys(charBtns).forEach(id => $(id).classList.remove('selected'));
-      $(btnId).classList.add('selected');
+  function updateSelectedCharDisplay() {
+    const disp = $('selectedCharDisplay');
+    if (!myCharacter) { disp.style.display = 'none'; return; }
+    const c = charData(myCharacter);
+    if (!c) { disp.style.display = 'none'; return; }
+    const abilityName = c.id === 'emmit' ? 'Reverse Time' : c.id === 'hanu' ? 'Hurry Up' : c.id === 'ignatia' ? 'Chaos Incarnate' : '';
+    disp.innerHTML = `
+      <img class="selchar-avatar" src="${charAvatarPath(c.id)}" alt="${esc(c.name)}" />
+      <div class="selchar-info">
+        <span class="selchar-name">${c.special ? c.special + ' ' : ''}${esc(c.name)}</span>
+        ${abilityName ? `<span class="selchar-ability">${esc(abilityName)}</span>` : ''}
+      </div>
+      <button class="selchar-clear" id="btnClearChar">✕</button>
+    `;
+    disp.style.display = 'flex';
+    $('btnClearChar').addEventListener('click', e => { e.stopPropagation(); selectCharacter(''); });
+  }
+
+  function selectCharacter(id) {
+    myCharacter = id;
+    updateSelectedCharDisplay();
+    hideCharPicker();
+  }
+
+  function showCharPicker() {
+    renderCharPicker();
+    $('landingMain').style.display  = 'none';
+    $('viewCharPick').style.display = 'flex';
+  }
+
+  function hideCharPicker() {
+    $('viewCharPick').style.display = 'none';
+    $('landingMain').style.display  = 'flex';
+  }
+
+  function renderCharPicker() {
+    const grid = $('charPickGrid');
+    let html = `<button class="char-pick-card${!myCharacter ? ' selected' : ''}" data-charid="">
+      <div class="char-pick-no-avatar">—</div>
+      <span class="char-pick-name">None</span>
+    </button>`;
+    CHARACTERS.forEach(c => {
+      html += `<button class="char-pick-card${myCharacter === c.id ? ' selected' : ''}" data-charid="${c.id}">
+        <div class="char-pick-img-wrap"><img src="${charAvatarPath(c.id)}" alt="${esc(c.name)}" loading="lazy" /></div>
+        <span class="char-pick-name">${c.special ? c.special + ' ' : ''}${esc(c.name)}</span>
+      </button>`;
     });
-  });
+    grid.innerHTML = html;
+    grid.querySelectorAll('.char-pick-card').forEach(card =>
+      card.addEventListener('click', () => selectCharacter(card.dataset.charid))
+    );
+  }
+
+  function applyCharacterTheme() {
+    const view   = $('viewInitiative');
+    const banner = $('initiativeCharBanner');
+    const title  = $('initiativePhaseTitle');
+    if (!view || !banner) return;
+    const isOnline = gameMode === 'host' || gameMode === 'player';
+    if (!isOnline || !myCharacter) {
+      banner.style.display = 'none';
+      view.classList.remove('char-themed');
+      view.style.removeProperty('--char-accent');
+      view.style.removeProperty('--char-accent-dim');
+      if (title) title.style.display = '';
+      return;
+    }
+    const c = charData(myCharacter);
+    if (!c) {
+      banner.style.display = 'none';
+      view.classList.remove('char-themed');
+      if (title) title.style.display = '';
+      return;
+    }
+    $('initiativeCharImg').src = charAvatarPath(c.id);
+    $('initiativeCharName').textContent = (c.special ? c.special + ' ' : '') + c.name;
+    banner.style.display = 'block';
+    view.classList.add('char-themed');
+    view.style.setProperty('--char-accent', c.accent);
+    view.style.setProperty('--char-accent-dim', c.accent + '30');
+    if (title) title.style.display = 'none';
+  }
+
+  $('btnPickChar').addEventListener('click', showCharPicker);
+  $('btnBackFromCharPick').addEventListener('click', hideCharPicker);
 
   $('btnCancelHurryUp').addEventListener('click', () => {
     $('hurryUpPanel').style.display = 'none';

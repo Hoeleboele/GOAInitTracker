@@ -25,13 +25,8 @@
           <button class="team-btn team-orange" id="btnTeamOrange" type="button">🔥 Orange</button>
         </div>
 
-        <div class="label" style="text-align:left;margin-top:10px;">Special character <span style="font-weight:400;color:var(--muted);font-size:11px;">(optional)</span></div>
-        <div class="char-toggle">
-          <button class="char-btn selected" id="btnCharNone" type="button">None</button>
-          <button class="char-btn" id="btnCharEmmit" type="button">⏪ Emmit</button>
-          <button class="char-btn" id="btnCharHanu" type="button">⚡ Hanu</button>
-          <button class="char-btn" id="btnCharIgnatia" type="button">🌀 Ignatia</button>
-        </div>
+        <div id="selectedCharDisplay" class="selected-char-display" style="display:none;"></div>
+        <button class="btn btn-ghost" id="btnPickChar" style="margin-top:10px;font-size:13px;">🎭 Pick a Character <span style="color:var(--muted);font-weight:400;font-size:11px;">(optional)</span></button>
 
         <button class="btn btn-primary" id="btnHost">Host Session</button>
         <button class="btn btn-secondary" id="btnShowJoin">Join Session</button>
@@ -44,6 +39,15 @@
                autocapitalize="characters" spellcheck="false" />
         <button class="btn btn-primary" id="btnJoin">Connect</button>
         <button class="btn btn-ghost" id="btnCancelJoin">← Back</button>
+      </div>
+
+      <div id="viewCharPick" style="display:none;flex-direction:column;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <button id="btnBackFromCharPick" class="btn btn-ghost btn-sm" style="padding:6px 14px;">← Back</button>
+          <span style="font-size:16px;font-weight:700;color:var(--text);">Pick Your Character</span>
+        </div>
+        <div style="margin-bottom:10px;font-size:12px;color:var(--muted);text-align:left;">Special characters (⏪ ⚡ 🌀) unlock unique abilities during gameplay.</div>
+        <div id="charPickGrid" class="char-pick-grid"></div>
       </div>
 
       <div id="landingStatus" class="status-msg"></div>
@@ -115,7 +119,11 @@
 
       <!-- Initiative Input -->
       <div id="viewInitiative" class="view" style="display:none;">
-        <h2 class="phase-title">Set Initiative</h2>
+        <div id="initiativeCharBanner" class="initiative-char-banner" style="display:none;">
+          <img id="initiativeCharImg" src="" alt="" />
+          <div class="char-banner-overlay"><span id="initiativeCharName"></span></div>
+        </div>
+        <h2 class="phase-title" id="initiativePhaseTitle">Set Initiative</h2>
         <p id="offlineInitFor" style="display:none;text-align:center;margin:-8px 0 14px;font-size:15px;color:var(--muted);"></p>
         <div id="initiativeDisplay" class="number-display">—</div>
 
