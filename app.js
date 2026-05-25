@@ -452,18 +452,18 @@
     const hasIgnatia = characterInGame('ignatia');
     const active     = state.turns[state.currentTurnIndex];
 
-    // Hanu — Hurry Up: Hanu player on their active turn; online host always; offline only on Hanu's turn
+    // Hanu — Hurry Up: Hanu player on their active turn; host/offline when Hanu is active
     const activeIds    = active ? (active.players || []).map(p => p.id) : [];
-    const hanuOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'hanu');
-    const canHurryUp   = (myCharacter === 'hanu' && hanuOnActive)
-                      || (isHost && hanuOnActive)
-                      || (isOffline && hanuOnActive);
+    // Fallback: if I am Hanu and my own ID is in the active slot, treat as active
+    // even if the synced state.players character field hasn't arrived yet.
+    const hanuOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'hanu')
+                      || (myCharacter === 'hanu' && activeIds.includes(myId));
+    const canHurryUp   = hanuOnActive && (myCharacter === 'hanu' || isHost || isOffline);
 
-    // Ignatia — Chaos Incarnate: Ignatia player; host when Ignatia is active; offline only on Ignatia's turn
-    const ignatiaOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'ignatia');
-    const canChaos = (myCharacter === 'ignatia')
-                  || (isHost && ignatiaOnActive)
-                  || (isOffline && ignatiaOnActive);
+    // Ignatia — Chaos Incarnate: Ignatia player on their active turn; host/offline when Ignatia is active
+    const ignatiaOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'ignatia')
+                         || (myCharacter === 'ignatia' && activeIds.includes(myId));
+    const canChaos = ignatiaOnActive && (myCharacter === 'ignatia' || isHost || isOffline);
 
     // Tigerclaw — Poison Token: only during Tigerclaw's own turn
     const tigerclawOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'tigerclaw');
