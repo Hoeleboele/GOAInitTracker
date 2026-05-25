@@ -813,10 +813,6 @@ input[type=text]::placeholder { color: var(--muted); }
 
 /* Mobile only — move the character banner to the bottom of the initiative screen */
 @media (max-width: 599px) {
-  #viewInitiative {
-    display: flex;
-    flex-direction: column;
-  }
   #viewInitiative .initiative-char-banner {
     order: 99;
     margin: 20px calc(-1 * clamp(12px, 4vw, 20px)) calc(-1 * clamp(14px, 4vw, 24px));
@@ -1199,6 +1195,11 @@ input[type=text]::placeholder { color: var(--muted); }
 /* ===============================================================================
    INITIATIVE VIEW -- CHARACTER BANNER & THEMING
    =============================================================================== */
+
+/* viewInitiative is always displayed as flex (set in JS) */
+#viewInitiative {
+  flex-direction: column;
+}
 
 .initiative-char-banner {
   margin: calc(-1 * clamp(14px, 4vw, 24px)) calc(-1 * clamp(12px, 4vw, 20px)) 20px;

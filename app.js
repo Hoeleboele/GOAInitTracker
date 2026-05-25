@@ -353,7 +353,7 @@
 
   const VIEWS = ['viewOfflineSetup','viewLobbyHost','viewLobbyPlayer','viewInitiative','viewTurns','viewRoundComplete'];
   function show(id) {
-    VIEWS.forEach(v => $(v).style.display = v === id ? 'block' : 'none');
+    VIEWS.forEach(v => $(v).style.display = v === id ? (v === 'viewInitiative' ? 'flex' : 'block') : 'none');
   }
 
   // ── Render ──────────────────────────────────────────────────────────────
