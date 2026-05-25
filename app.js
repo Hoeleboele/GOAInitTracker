@@ -170,6 +170,9 @@
     $('landingMain').style.display     = 'flex';
     $('viewCharPick').style.display    = 'none';
     $('codeInput').value = '';
+    // Reset team button visual state to match the (cleared) myTeam variable
+    $('btnTeamBlue').classList.remove('selected');
+    $('btnTeamOrange').classList.remove('selected');
     setStatus('');
   }
 
@@ -1464,6 +1467,14 @@
   });
 
   $('btnShowJoin').addEventListener('click', () => {
+    const name = ($('nameInput').value || '').trim();
+    if (!name) {
+      $('nameInput').focus();
+      $('nameInput').placeholder = 'Enter your name first!';
+      return;
+    }
+    if (!myTeam) { toast('Select your team (Blue or Orange) first!'); return; }
+    if (!myCharacter) { toast('Pick a character first!'); return; }
     $('landingMain').style.display = 'none';
     $('joinForm').style.display    = 'flex';
     $('codeInput').focus();
@@ -1524,26 +1535,6 @@
   });
 
   function doJoin() {
-    const name = ($('nameInput').value || '').trim();
-    if (!name) {
-      $('joinForm').style.display    = 'none';
-      $('landingMain').style.display = 'flex';
-      $('nameInput').focus();
-      $('nameInput').placeholder = 'Enter your name first!';
-      return;
-    }
-    if (!myTeam) {
-      $('joinForm').style.display    = 'none';
-      $('landingMain').style.display = 'flex';
-      toast('Select your team (Blue or Orange) first!');
-      return;
-    }
-    if (!myCharacter) {
-      $('joinForm').style.display    = 'none';
-      $('landingMain').style.display = 'flex';
-      toast('Pick a character first!');
-      return;
-    }
     const code = $('codeInput').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
     if (!code) { $('codeInput').focus(); return; }
     joinGame(code);
