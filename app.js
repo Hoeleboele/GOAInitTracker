@@ -414,19 +414,36 @@
 
   function showHurryUpPanel() {
     $('hurryUpPanel').style.display = 'block';
-    const targets = Object.values(state.players).filter(p => p.isConnected);
-    $('hurryUpTargets').innerHTML = targets.map(p =>
-      `<button class="hurry-target-btn" data-id="${p.id}">
-        <span class="team-dot ${p.team}"></span>${esc(p.name)}
-        ${p.character ? `<span class="char-badge">${charLabel(p.character)}</span>` : ''}
-      </button>`
-    ).join('');
-    $('hurryUpTargets').querySelectorAll('.hurry-target-btn').forEach(btn =>
-      btn.addEventListener('click', () => {
-        $('hurryUpPanel').style.display = 'none';
-        sendToHost({ type: 'use_hurry_up', payload: { targetId: btn.dataset.id } });
-      })
+
+    // Only show players who have a pending turn AFTER the current one, and exclude Hanu himself
+    const cur = state.currentTurnIndex;
+    const futureTurnPlayerIds = new Set();
+    for (let i = cur + 1; i < state.turns.length; i++) {
+      const t = state.turns[i];
+      if (t.status !== 'completed') (t.players || []).forEach(p => futureTurnPlayerIds.add(p.id));
+    }
+    const hanuPlayer = Object.values(state.players).find(p => p.character === 'hanu');
+    const hanuId = hanuPlayer ? hanuPlayer.id : null;
+
+    const targets = Object.values(state.players).filter(p =>
+      p.isConnected && p.id !== hanuId && futureTurnPlayerIds.has(p.id)
     );
+    if (!targets.length) {
+      $('hurryUpTargets').innerHTML = '<p style="color:var(--muted);font-size:13px;margin:4px 0">No eligible players (everyone after Hanu has already gone).</p>';
+    } else {
+      $('hurryUpTargets').innerHTML = targets.map(p =>
+        `<button class="hurry-target-btn" data-id="${p.id}">
+          <span class="team-dot ${p.team}"></span>${esc(p.name)}
+          ${p.character ? `<span class="char-badge">${charLabel(p.character)}</span>` : ''}
+        </button>`
+      ).join('');
+      $('hurryUpTargets').querySelectorAll('.hurry-target-btn').forEach(btn =>
+        btn.addEventListener('click', () => {
+          $('hurryUpPanel').style.display = 'none';
+          sendToHost({ type: 'use_hurry_up', payload: { targetId: btn.dataset.id } });
+        })
+      );
+    }
   }
 
   function applyHurryUp(targetId) {
@@ -796,7 +813,7 @@
 
   // Unified: host handles locally, player sends over wire
   function sendToHost(msg) {
-    if (gameMode === 'host') {
+    if (gameMode === 'host' || gameMode === 'offline') {
       handleHostMsg(msg);
     } else if (hostConn && hostConn.open) {
       hostConn.send(msg);
