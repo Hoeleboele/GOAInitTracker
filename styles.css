@@ -938,26 +938,27 @@ input[type=text]::placeholder { color: var(--muted); }
 }
 
 .char-pick-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 8px;
   overflow-y: auto;
-  max-height: min(420px, 58vh);
+  max-height: min(480px, 60vh);
   padding-bottom: 4px;
 }
 
 .char-pick-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 5px;
+  gap: 12px;
   border: 2px solid rgba(244,238,230,0.10);
   border-radius: 10px;
   background: rgba(28,22,14,0.70);
-  padding: 6px 4px 8px;
+  padding: 6px 12px 6px 6px;
   cursor: pointer;
   transition: border-color .15s, background .15s, box-shadow .15s;
-  text-align: center;
+  text-align: left;
+  width: 100%;
 }
 .char-pick-card:hover {
   border-color: rgba(200,160,40,0.38);
@@ -970,8 +971,9 @@ input[type=text]::placeholder { color: var(--muted); }
 }
 
 .char-pick-img-wrap {
-  width: 100%;
-  aspect-ratio: 5 / 2;
+  width: 80px;
+  height: 40px;
+  flex-shrink: 0;
   overflow: hidden;
   border-radius: 6px;
   background: rgba(0,0,0,0.30);
@@ -985,8 +987,9 @@ input[type=text]::placeholder { color: var(--muted); }
 }
 
 .char-pick-no-avatar {
-  width: 100%;
-  aspect-ratio: 5 / 2;
+  width: 80px;
+  height: 40px;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -997,11 +1000,11 @@ input[type=text]::placeholder { color: var(--muted); }
 }
 
 .char-pick-name {
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text);
   line-height: 1.25;
-  padding: 0 2px;
+  flex: 1;
 }
 
 /* -- Selected char badge on landing -- */
