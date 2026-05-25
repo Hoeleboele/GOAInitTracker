@@ -77,38 +77,38 @@
 
   // ── Character helpers ────────────────────────────────────────────────────
   const CHARACTERS = [
-    { id: 'arien',       name: 'Arien',       accent: '#70B858' },
-    { id: 'bain',        name: 'Bain',         accent: '#6888C8' },
-    { id: 'brogan',      name: 'Brogan',       accent: '#B07040' },
-    { id: 'brynn',       name: 'Brynn',        accent: '#D07898' },
-    { id: 'cutter',      name: 'Cutter',       accent: '#50A8C0' },
-    { id: 'dodger',      name: 'Dodger',       accent: '#C0A830' },
-    { id: 'emmit',       name: 'Emmit',        accent: '#8080CC', special: '⏪' },
-    { id: 'garrus',      name: 'Garrus',       accent: '#9080C0' },
-    { id: 'gydion',      name: 'Gydion',       accent: '#58C0A0' },
-    { id: 'hanu',        name: 'Hanu',         accent: '#CC4030', special: '⚡' },
-    { id: 'ignatia',     name: 'Ignatia',      accent: '#C060D8', special: '🌀' },
-    { id: 'min',         name: 'Min',          accent: '#E0B040' },
-    { id: 'misa',        name: 'Misa',         accent: '#E07070' },
-    { id: 'mortimer',    name: 'Mortimer',     accent: '#70B870' },
-    { id: 'mrak',        name: 'Mrak',         accent: '#C04040' },
-    { id: 'nebkher',     name: 'Nebkher',      accent: '#D0A858' },
-    { id: 'razzle',      name: 'Razzle',       accent: '#F04880' },
-    { id: 'rowenna',     name: 'Rowenna',      accent: '#D07840' },
-    { id: 'sabina',      name: 'Sabina',       accent: '#88B8D8' },
-    { id: 'silverarrow', name: 'Silver Arrow', accent: '#B8D0E8' },
-    { id: 'snorri',      name: 'Snorri',       accent: '#A8C0D8' },
-    { id: 'swift',       name: 'Swift',        accent: '#78D898' },
-    { id: 'takahide',    name: 'Takahide',     accent: '#C89060' },
-    { id: 'tali',        name: 'Tali',         accent: '#D8A0C0' },
-    { id: 'tigerclaw',   name: 'Tiger Claw',   accent: '#E8A030' },
-    { id: 'trinkets',    name: 'Trinkets',     accent: '#C8D060' },
-    { id: 'ursafar',     name: 'Ursafar',      accent: '#A87840' },
-    { id: 'wasp',        name: 'Wasp',         accent: '#88C840' },
-    { id: 'whisper',     name: 'Whisper',      accent: '#A888D0' },
-    { id: 'widget',      name: 'Widget',       accent: '#58C8E0' },
-    { id: 'wuk',         name: 'Wuk',          accent: '#E06840' },
-    { id: 'xargatha',    name: 'Xargatha',     accent: '#B04060' },
+    { id: 'arien',       name: 'Arien',       accent: '#70B858', quote: 'Every arrow finds its mark. Eventually.' },
+    { id: 'bain',        name: 'Bain',         accent: '#6888C8', quote: 'Honor is the only shield that never breaks.' },
+    { id: 'brogan',      name: 'Brogan',       accent: '#B07040', quote: "Slow? I prefer 'thorough'." },
+    { id: 'brynn',       name: 'Brynn',        accent: '#D07898', quote: 'They never see the knife coming.' },
+    { id: 'cutter',      name: 'Cutter',       accent: '#50A8C0', quote: 'One cut is all it takes.' },
+    { id: 'dodger',      name: 'Dodger',       accent: '#C0A830', quote: "You can't hit what you can't catch." },
+    { id: 'emmit',       name: 'Emmit',        accent: '#8080CC', quote: "I've seen how this ends. Let me try again.", special: '⏪' },
+    { id: 'garrus',      name: 'Garrus',       accent: '#9080C0', quote: 'Power is earned, not granted.' },
+    { id: 'gydion',      name: 'Gydion',       accent: '#58C0A0', quote: 'The spirits guide my hand.' },
+    { id: 'hanu',        name: 'Hanu',         accent: '#CC4030', quote: 'Move fast or move aside.', special: '⚡' },
+    { id: 'ignatia',     name: 'Ignatia',      accent: '#C060D8', quote: 'Order is just chaos waiting to happen.', special: '🌀' },
+    { id: 'min',         name: 'Min',          accent: '#E0B040', quote: "Small doesn't mean harmless." },
+    { id: 'misa',        name: 'Misa',         accent: '#E07070', quote: "I fight with everything I've got." },
+    { id: 'mortimer',    name: 'Mortimer',     accent: '#70B870', quote: 'Death is just a new beginning.' },
+    { id: 'mrak',        name: 'Mrak',         accent: '#C04040', quote: 'Rage is a weapon. Mine is loaded.' },
+    { id: 'nebkher',     name: 'Nebkher',      accent: '#D0A858', quote: 'The sands have witnessed my glory.' },
+    { id: 'razzle',      name: 'Razzle',       accent: '#F04880', quote: 'Make it dramatic — or why bother?' },
+    { id: 'rowenna',     name: 'Rowenna',      accent: '#D07840', quote: "I've faced worse. Much worse." },
+    { id: 'sabina',      name: 'Sabina',       accent: '#88B8D8', quote: 'Calm waters run the deepest.' },
+    { id: 'silverarrow', name: 'Silver Arrow', accent: '#B8D0E8', quote: 'One shot. One moment. One victory.' },
+    { id: 'snorri',      name: 'Snorri',       accent: '#A8C0D8', quote: "I've survived worse. This is just Tuesday." },
+    { id: 'swift',       name: 'Swift',        accent: '#78D898', quote: 'No fortress stands in my way.' },
+    { id: 'takahide',    name: 'Takahide',     accent: '#C89060', quote: 'Speed is the only armor I need.' },
+    { id: 'tali',        name: 'Tali',         accent: '#D8A0C0', quote: 'Strike from shadow, vanish like smoke.' },
+    { id: 'tigerclaw',   name: 'Tiger Claw',   accent: '#E8A030', quote: 'The cold never reaches my heart.' },
+    { id: 'trinkets',    name: 'Trinkets',     accent: '#C8D060', quote: "Everything is a tool if you're creative enough." },
+    { id: 'ursafar',     name: 'Ursafar',      accent: '#A87840', quote: "They called it a fortress. I called it a door." },
+    { id: 'wasp',        name: 'Wasp',         accent: '#88C840', quote: 'Fear is just weakness with a name.' },
+    { id: 'whisper',     name: 'Whisper',      accent: '#A888D0', quote: 'Pain is just information.' },
+    { id: 'widget',      name: 'Widget',       accent: '#58C8E0', quote: 'Knowledge is the sharpest weapon.' },
+    { id: 'wuk',         name: 'Wuk',          accent: '#E06840', quote: "Lucky? I prefer 'prepared'." },
+    { id: 'xargatha',    name: 'Xargatha',     accent: '#B04060', quote: 'The jungle has teeth. So do I.' },
   ];
 
   function charData(id) {
@@ -1343,6 +1343,7 @@
     const banner  = $('initiativeCharBanner');
     const title   = $('initiativePhaseTitle');
     const ability = $('initiativeCharAbility');
+    const quote   = $('initiativeCharQuote');
     if (!view || !banner) return;
     const isOnline = gameMode === 'host' || gameMode === 'player';
     if (!isOnline || !myCharacter) {
@@ -1369,6 +1370,7 @@
       ability.textContent = abilityText;
       ability.style.display = abilityText ? '' : 'none';
     }
+    if (quote) quote.textContent = c.quote ? `"${c.quote}"` : '';
     banner.style.display = 'block';
     view.classList.add('char-themed');
     view.style.setProperty('--char-accent', c.accent);
