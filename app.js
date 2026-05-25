@@ -1598,7 +1598,7 @@
     CHARACTERS.forEach(c => {
       html += `<button class="char-pick-card${myCharacter === c.id ? ' selected' : ''}" data-charid="${c.id}">
         <div class="char-pick-img-wrap"><img src="${charAvatarPath(c.id)}" alt="${esc(c.name)}" loading="lazy" /></div>
-        <span class="char-pick-name">${c.special ? c.special + ' ' : ''}${esc(c.name)}</span>
+        <span class="char-pick-name">${esc(c.name)}</span>
       </button>`;
     });
     grid.innerHTML = html;
