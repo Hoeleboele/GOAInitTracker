@@ -11,6 +11,7 @@
   let myId        = '';
   let myName      = '';
   let myTeam      = '';         // 'blue' | 'orange'
+  let myCharacter  = '';         // 'emmit' | 'hanu' | 'ignatia' | ''
   let hostTokenChoice  = 'blue'; // host only: which team starts with token
   let hostManagesTurns = false;   // host only: host manually ends each turn
 
@@ -22,6 +23,7 @@
     initiativeToken:  'blue',   // 'blue' | 'orange'
     mixedTies:        {},       // { [initiative]: { bluePool, orangePool } }
     hostManagesTurns: false,    // host manages turn endings on behalf of players
+    reverseInitiative: false,   // Emmit: sort low→high instead of high→low
   };
 
   // initiative pad state
@@ -71,6 +73,14 @@
     const el = $('landingStatus');
     el.textContent = msg;
     el.className   = 'status-msg' + (isErr ? ' err' : '');
+  }
+
+  // ── Character helpers ────────────────────────────────────────────────────
+  function characterInGame(char) {
+    return Object.values(state.players).some(p => p.character === char);
+  }
+  function charLabel(char) {
+    return { emmit: '⏪ Emmit', hanu: '⚡ Hanu', ignatia: '🌀 Ignatia' }[char] || '';
   }
 
   // ── Show / hide ─────────────────────────────────────────────────────────
@@ -144,22 +154,30 @@
             : '';
           $('offlineInitFor').style.display = 'block';
           $('initiativePlayers').style.display = 'none';
+          const offlineEmmit = op && op.character === 'emmit';
+          $('abilityReverseTime').style.display = offlineEmmit ? 'block' : 'none';
         } else {
           $('offlineInitFor').style.display = 'none';
           $('initiativePlayers').style.display = '';
           renderPlayers('initiativePlayers', players);
+          const showRevTime = myCharacter === 'emmit'
+            || (gameMode === 'host' && characterInGame('emmit'));
+          $('abilityReverseTime').style.display = showRevTime ? 'block' : 'none';
         }
         break;
 
       case 'turns': {
         show('viewTurns');
         renderTurnList('turnsList');
+        renderAbilities();
         break;
       }
 
       case 'round-complete':
         show('viewRoundComplete');
         renderTurnList('roundSummary');
+        $('abilityPanel').style.display  = 'none';
+        $('hurryUpPanel').style.display  = 'none';
         $('btnNewRound').style.display  = (gameMode === 'host' || gameMode === 'offline') ? 'block' : 'none';
         $('newRoundHint').style.display = (gameMode === 'host' || gameMode === 'offline') ? 'none'  : 'block';
         break;
@@ -184,10 +202,11 @@
         : p.submissionStatus === 'submitted' ? 'Entered…'
         :                                      'Waiting…';
       const teamDot = p.team ? `<span class="team-dot ${p.team}"></span>` : '';
+      const charTag = p.character ? `<span class="char-badge">${charLabel(p.character)}</span>` : '';
       return `
         <div class="player-row${isMe ? ' is-me' : ''}">
           <span class="player-name">
-            ${teamDot}${esc(p.name)}${isMe ? '<span class="me-tag">(you)</span>' : ''}
+            ${teamDot}${esc(p.name)}${charTag}${isMe ? '<span class="me-tag">(you)</span>' : ''}
           </span>
           <span class="pstatus ${statusClass}">${statusText}</span>
         </div>`;
@@ -311,6 +330,12 @@
           <button class="offline-team-btn${p.team === 'blue'   ? ' active' : ''}" data-idx="${i}" data-team="blue">💎</button>
           <button class="offline-team-btn${p.team === 'orange' ? ' active' : ''}" data-idx="${i}" data-team="orange">🔥</button>
         </div>
+        <select class="offline-char-select" data-idx="${i}">
+          <option value="">—</option>
+          <option value="emmit"   ${p.character === 'emmit'   ? 'selected' : ''}>⏪ Emmit</option>
+          <option value="hanu"    ${p.character === 'hanu'    ? 'selected' : ''}>⚡ Hanu</option>
+          <option value="ignatia" ${p.character === 'ignatia' ? 'selected' : ''}>🌀 Ignatia</option>
+        </select>
         <button class="btn-remove-offline" data-idx="${i}" title="Remove">&#x2715;</button>
       </div>
     `).join('');
@@ -323,12 +348,127 @@
         renderOfflineSetup();
       })
     );
+    list.querySelectorAll('.offline-char-select').forEach(sel =>
+      sel.addEventListener('change', e => {
+        offlinePlayers[+e.target.dataset.idx].character = e.target.value;
+      })
+    );
     list.querySelectorAll('.btn-remove-offline').forEach(btn =>
       btn.addEventListener('click', e => {
         offlinePlayers.splice(+e.target.dataset.idx, 1);
         renderOfflineSetup();
       })
     );
+  }
+
+  // ── Special character abilities ─────────────────────────────────────────
+  function renderAbilities() {
+    const isHost    = gameMode === 'host';
+    const isOffline = gameMode === 'offline';
+    const hasEmmit   = characterInGame('emmit');
+    const hasHanu    = characterInGame('hanu');
+    const hasIgnatia = characterInGame('ignatia');
+    const active     = state.turns[state.currentTurnIndex];
+
+    // Emmit — Reverse Time: Emmit player always; host/offline if Emmit is in game
+    const canRevTime = myCharacter === 'emmit' || ((isHost || isOffline) && hasEmmit);
+
+    // Hanu — Hurry Up: Hanu player on their active turn; host/offline if Hanu is in game
+    const activeIds    = active ? (active.players || []).map(p => p.id) : [];
+    const hanuOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'hanu');
+    const canHurryUp   = (myCharacter === 'hanu' && hanuOnActive) || ((isHost || isOffline) && hasHanu);
+
+    // Ignatia — Chaos Incarnate: Ignatia player; host/offline if Ignatia is in game
+    const canChaos = myCharacter === 'ignatia' || ((isHost || isOffline) && hasIgnatia);
+
+    const panel = $('abilityPanel');
+    if (!canRevTime && !canHurryUp && !canChaos) { panel.style.display = 'none'; return; }
+
+    panel.style.display = 'flex';
+    let html = '';
+    if (canRevTime) {
+      const on  = state.reverseInitiative;
+      html += `<button class="ability-btn emmit-ability${on ? ' ability-active' : ''}" id="btnReverseTime">
+        ⏪ Reverse Time${on ? ' ✓' : ''}</button>`;
+    }
+    if (canHurryUp) {
+      html += `<button class="ability-btn hanu-ability" id="btnHurryUp">⚡ Hurry Up!</button>`;
+    }
+    if (canChaos) {
+      html += `<button class="ability-btn ignatia-ability" id="btnChaosIncarnate">🌀 Chaos Incarnate</button>`;
+    }
+    panel.innerHTML = html;
+
+    if (canRevTime) {
+      $('btnReverseTime').addEventListener('click', () =>
+        sendToHost({ type: 'use_reverse_time' }));
+    }
+    if (canHurryUp) {
+      $('btnHurryUp').addEventListener('click', showHurryUpPanel);
+    }
+    if (canChaos) {
+      $('btnChaosIncarnate').addEventListener('click', () =>
+        sendToHost({ type: 'use_chaos_incarnate' }));
+    }
+  }
+
+  function showHurryUpPanel() {
+    $('hurryUpPanel').style.display = 'block';
+    const targets = Object.values(state.players).filter(p => p.isConnected);
+    $('hurryUpTargets').innerHTML = targets.map(p =>
+      `<button class="hurry-target-btn" data-id="${p.id}">
+        <span class="team-dot ${p.team}"></span>${esc(p.name)}
+        ${p.character ? `<span class="char-badge">${charLabel(p.character)}</span>` : ''}
+      </button>`
+    ).join('');
+    $('hurryUpTargets').querySelectorAll('.hurry-target-btn').forEach(btn =>
+      btn.addEventListener('click', () => {
+        $('hurryUpPanel').style.display = 'none';
+        sendToHost({ type: 'use_hurry_up', payload: { targetId: btn.dataset.id } });
+      })
+    );
+  }
+
+  function applyHurryUp(targetId) {
+    const target = state.players[targetId];
+    if (!target) return;
+    const NEW_INIT = 11;
+    const cur      = state.currentTurnIndex;
+
+    // Remove target from any future pending turns
+    for (let i = state.turns.length - 1; i > cur; i--) {
+      const t = state.turns[i];
+      if ((t.players || []).some(p => p.id === targetId)) {
+        t.players = t.players.filter(p => p.id !== targetId);
+        if (t.players.length === 0) state.turns.splice(i, 1);
+      }
+    }
+
+    state.players[targetId] = { ...target, initiative: NEW_INIT };
+
+    // Find insertion position based on sort order
+    let insertAt = state.turns.length;
+    for (let i = cur + 1; i < state.turns.length; i++) {
+      const before = state.reverseInitiative
+        ? state.turns[i].initiative > NEW_INIT   // low→high: insert before higher
+        : state.turns[i].initiative < NEW_INIT;  // high→low: insert before lower
+      if (before) { insertAt = i; break; }
+    }
+    state.turns.splice(insertAt, 0, {
+      order:      0,
+      players:    [{ id: targetId, name: target.name, team: target.team }],
+      initiative: NEW_INIT,
+      status:     'pending',
+      doneIds:    [],
+    });
+    state.turns.forEach((t, i) => { t.order = i + 1; });
+
+    toast(`⚡ ${esc(target.name)} rushes to initiative 11!`);
+    broadcast({ type: 'turn_advanced',
+      payload: { turns: state.turns, currentTurnIndex: cur,
+                 initiativeToken: state.initiativeToken, mixedTies: state.mixedTies,
+                 reverseInitiative: state.reverseInitiative } });
+    render();
   }
 
   // ── Offline turn advancement ────────────────────────────────────────────
@@ -381,6 +521,9 @@
 
     if (gameMode === 'offline') {
       // Store initiative for current offline player and advance
+      if ($('abilityReverseTime').style.display !== 'none' && $('chkReverseTime').checked) {
+        state.reverseInitiative = true;
+      }
       offlinePlayers[offlineInitIdx].initiative = +initValue;
       offlineInitIdx++;
       if (offlineInitIdx >= offlinePlayers.length) {
@@ -388,7 +531,7 @@
         state.players = {};
         offlinePlayers.forEach(p => {
           state.players[p.id] = {
-            id: p.id, peerId: p.id, name: p.name, team: p.team,
+            id: p.id, peerId: p.id, name: p.name, team: p.team, character: p.character || '',
             initiative: p.initiative, submissionStatus: 'locked', isConnected: true,
           };
         });
@@ -402,8 +545,9 @@
     $('btnLock').style.display = 'none';
     $('btnEdit').style.display = 'block';
     $('lockStatus').textContent = '✓ Locked in — waiting for others';
+    const reverseTime = $('abilityReverseTime').style.display !== 'none' && $('chkReverseTime').checked;
     sendToHost({ type: 'initiative_locked',
-      payload: { playerId: myId, initiative: +initValue } });
+      payload: { playerId: myId, initiative: +initValue, reverseTime } });
     if (gameMode === 'host') {
       applyInitiativeLocked(myId, +initValue);
     }
@@ -487,7 +631,8 @@
       if (!byVal[v]) byVal[v] = [];
       byVal[v].push(p);
     });
-    const sortedVals = Object.keys(byVal).map(Number).sort((a, b) => b - a);
+    const sortedVals = Object.keys(byVal).map(Number)
+      .sort((a, b) => state.reverseInitiative ? a - b : b - a);
 
     state.mixedTies = {};
     const turns = [];
@@ -520,7 +665,8 @@
     state.phase            = 'turns';
     broadcast({ type: 'turns_revealed',
       payload: { turns: state.turns, currentTurnIndex: 0,
-                 initiativeToken: state.initiativeToken, mixedTies: state.mixedTies } });
+                 initiativeToken: state.initiativeToken, mixedTies: state.mixedTies,
+                 reverseInitiative: state.reverseInitiative } });
     render();
   }
 
@@ -611,6 +757,7 @@
     state.turns = [];
     state.currentTurnIndex = 0;
     state.mixedTies = {};
+    state.reverseInitiative = false;
     if (gameMode === 'offline') {
       offlinePlayers.forEach(p => { p.initiative = undefined; });
       offlineInitIdx = 0;
@@ -629,13 +776,14 @@
 
   function serializeState() {
     return {
-      phase:            state.phase,
-      players:          state.players,
-      turns:            state.turns,
-      currentTurnIndex: state.currentTurnIndex,
-      initiativeToken:  state.initiativeToken,
-      mixedTies:        state.mixedTies,
-      hostManagesTurns: state.hostManagesTurns,
+      phase:             state.phase,
+      players:           state.players,
+      turns:             state.turns,
+      currentTurnIndex:  state.currentTurnIndex,
+      initiativeToken:   state.initiativeToken,
+      mixedTies:         state.mixedTies,
+      hostManagesTurns:  state.hostManagesTurns,
+      reverseInitiative: state.reverseInitiative,
     };
   }
 
@@ -675,7 +823,38 @@
         break;
       }
       case 'initiative_locked': {
+        if (msg.payload.reverseTime) state.reverseInitiative = true;
         applyInitiativeLocked(msg.payload.playerId, msg.payload.initiative);
+        break;
+      }
+      case 'use_reverse_time': {
+        state.reverseInitiative = !state.reverseInitiative;
+        if (state.phase === 'turns') {
+          const cur = state.currentTurnIndex;
+          const pending = state.turns.slice(cur + 1);
+          pending.sort((a, b) => state.reverseInitiative ? a.initiative - b.initiative : b.initiative - a.initiative);
+          state.turns.splice(cur + 1, state.turns.length - cur - 1, ...pending);
+          state.turns.forEach((t, i) => { t.order = i + 1; });
+          broadcast({ type: 'turn_advanced',
+            payload: { turns: state.turns, currentTurnIndex: cur,
+                       initiativeToken: state.initiativeToken, mixedTies: state.mixedTies,
+                       reverseInitiative: state.reverseInitiative } });
+        } else {
+          broadcast({ type: 'state_sync', payload: serializeState() });
+        }
+        toast(state.reverseInitiative ? '\u23ea Reverse Time: now low \u2192 high' : '\u23ea Time restored: high \u2192 low');
+        render();
+        break;
+      }
+      case 'use_hurry_up': {
+        applyHurryUp(msg.payload.targetId);
+        break;
+      }
+      case 'use_chaos_incarnate': {
+        state.initiativeToken = state.initiativeToken === 'blue' ? 'orange' : 'blue';
+        toast('\ud83c\udf00 Chaos Incarnate! Token flipped to ' + state.initiativeToken + '.');
+        broadcast({ type: 'state_sync', payload: serializeState() });
+        render();
         break;
       }
       case 'turn_ended': {
@@ -723,6 +902,7 @@
         state.initiativeToken  = msg.payload.initiativeToken || state.initiativeToken;
         state.mixedTies        = msg.payload.mixedTies || {};
         state.hostManagesTurns = msg.payload.hostManagesTurns || false;
+        state.reverseInitiative = msg.payload.reverseInitiative || false;
         render();
         break;
 
@@ -732,14 +912,16 @@
         state.phase            = 'turns';
         state.initiativeToken  = msg.payload.initiativeToken || state.initiativeToken;
         state.mixedTies        = msg.payload.mixedTies || {};
+        state.reverseInitiative = msg.payload.reverseInitiative || false;
         render();
         break;
 
       case 'turn_advanced':
         state.turns            = msg.payload.turns;
         state.currentTurnIndex = msg.payload.currentTurnIndex;
-        if (msg.payload.initiativeToken !== undefined) state.initiativeToken = msg.payload.initiativeToken;
-        if (msg.payload.mixedTies       !== undefined) state.mixedTies       = msg.payload.mixedTies;
+        if (msg.payload.initiativeToken  !== undefined) state.initiativeToken  = msg.payload.initiativeToken;
+        if (msg.payload.mixedTies        !== undefined) state.mixedTies        = msg.payload.mixedTies;
+        if (msg.payload.reverseInitiative !== undefined) state.reverseInitiative = msg.payload.reverseInitiative;
         render();
         break;
 
@@ -800,7 +982,7 @@
         players: {
           [myId]: {
             id: myId, peerId: id,
-            name: myName, team: myTeam,
+            name: myName, team: myTeam, character: myCharacter,
             submissionStatus: 'not-submitted',
             isConnected: true,
           },
@@ -856,7 +1038,7 @@
           type: 'player_joined',
           payload: {
             id: myId, peerId: peer.id,
-            name: myName, team: myTeam,
+            name: myName, team: myTeam, character: myCharacter,
             submissionStatus: 'not-submitted',
             isConnected: true,
           },
@@ -900,12 +1082,18 @@
     playerConns = {};
     gameMode    = null;
     sessionCode = myId = myName = myTeam = '';
+    myCharacter = '';
     offlinePlayers     = [];
     offlineInitIdx     = 0;
     offlineTokenChoice = 'blue';
     hostManagesTurns   = false;
     if ($('chkHostTurns')) $('chkHostTurns').checked = false;
-    state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {} };
+    // Reset character buttons
+    ['btnCharNone','btnCharEmmit','btnCharHanu','btnCharIgnatia'].forEach(id => {
+      const el = $(id); if (el) el.classList.remove('selected');
+    });
+    const none = $('btnCharNone'); if (none) none.classList.add('selected');
+    state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {}, reverseInitiative: false };
     resetInitPad();
   }
 
@@ -933,12 +1121,12 @@
     myId               = genId();
     offlineTokenChoice = 'blue';
     offlinePlayers     = [
-      { id: genId(), name: '', team: 'blue'   },
-      { id: genId(), name: '', team: 'orange' },
+      { id: genId(), name: '', team: 'blue',   character: '' },
+      { id: genId(), name: '', team: 'orange', character: '' },
     ];
     offlineInitIdx = 0;
     state = { phase: 'offline-setup', players: {}, turns: [], currentTurnIndex: 0,
-              initiativeToken: 'blue', mixedTies: {} };
+              initiativeToken: 'blue', mixedTies: {}, reverseInitiative: false };
     $('statusBadge').textContent = 'offline';
     $('statusBadge').className   = 'badge badge-offline';
     showApp();
@@ -946,7 +1134,7 @@
   });
 
   $('btnAddOfflinePlayer').addEventListener('click', () => {
-    offlinePlayers.push({ id: genId(), name: '', team: 'blue' });
+    offlinePlayers.push({ id: genId(), name: '', team: 'blue', character: '' });
     renderOfflineSetup();
   });
   $('btnOfflineTokenBlue').addEventListener('click', () => {
@@ -1045,6 +1233,25 @@
   });
   $('chkHostTurns').addEventListener('change', e => {
     hostManagesTurns = e.target.checked;
+  });
+
+  // ── Character selection ───────────────────────────────────────────────
+  const charBtns = {
+    btnCharNone:    '',
+    btnCharEmmit:   'emmit',
+    btnCharHanu:    'hanu',
+    btnCharIgnatia: 'ignatia',
+  };
+  Object.entries(charBtns).forEach(([btnId, char]) => {
+    $(btnId).addEventListener('click', () => {
+      myCharacter = char;
+      Object.keys(charBtns).forEach(id => $(id).classList.remove('selected'));
+      $(btnId).classList.add('selected');
+    });
+  });
+
+  $('btnCancelHurryUp').addEventListener('click', () => {
+    $('hurryUpPanel').style.display = 'none';
   });
 
   // ── Boot ────────────────────────────────────────────────────────────────

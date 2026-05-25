@@ -25,6 +25,14 @@
           <button class="team-btn team-orange" id="btnTeamOrange" type="button">🔥 Orange</button>
         </div>
 
+        <div class="label" style="text-align:left;margin-top:10px;">Special character <span style="font-weight:400;color:var(--muted);font-size:11px;">(optional)</span></div>
+        <div class="char-toggle">
+          <button class="char-btn selected" id="btnCharNone" type="button">None</button>
+          <button class="char-btn" id="btnCharEmmit" type="button">⏪ Emmit</button>
+          <button class="char-btn" id="btnCharHanu" type="button">⚡ Hanu</button>
+          <button class="char-btn" id="btnCharIgnatia" type="button">🌀 Ignatia</button>
+        </div>
+
         <button class="btn btn-primary" id="btnHost">Host Session</button>
         <button class="btn btn-secondary" id="btnShowJoin">Join Session</button>
         <button class="btn btn-ghost" id="btnOffline">Play Offline</button>
@@ -83,8 +91,8 @@
 
         <div class="label" style="margin-top:20px;">Initiative token starts with</div>
         <div class="team-toggle">
-          <button class="team-btn team-blue selected" id="btnTokenBlue" type="button">🔵 Blue</button>
-          <button class="team-btn team-orange" id="btnTokenOrange" type="button">🟠 Orange</button>
+          <button class="team-btn team-blue selected" id="btnTokenBlue" type="button">� Blue</button>
+          <button class="team-btn team-orange" id="btnTokenOrange" type="button">🔥 Orange</button>
         </div>
 
         <div class="lobby-actions">
@@ -131,6 +139,13 @@
           <p id="lockStatus" class="hint"></p>
         </div>
 
+        <div id="abilityReverseTime" class="ability-card" style="display:none;">
+          <label class="option-toggle" for="chkReverseTime">
+            <input type="checkbox" id="chkReverseTime" />
+            ⏪ Reverse Time — sort <strong>low → high</strong> this round
+          </label>
+        </div>
+
         <div class="label" style="margin-top:24px;">Players</div>
         <div id="initiativePlayers" class="player-list"></div>
       </div>
@@ -143,6 +158,12 @@
           <button class="btn btn-primary btn-large" id="btnEndTurn">End My Turn</button>
         </div>
         <p id="turnWaiting" class="hint" style="display:none;margin-top:10px;"></p>
+        <div id="abilityPanel" class="ability-panel" style="display:none;"></div>
+        <div id="hurryUpPanel" class="ability-card" style="display:none;">
+          <div class="label" style="margin-bottom:8px;">⚡ Rush a player to initiative 11:</div>
+          <div id="hurryUpTargets"></div>
+          <button class="btn btn-sm btn-ghost" id="btnCancelHurryUp" style="margin-top:8px;">Cancel</button>
+        </div>
       </div>
 
       <!-- Round Complete -->

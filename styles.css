@@ -791,3 +791,139 @@ input[type=text]::placeholder { color: var(--muted); }
   .landing-card { max-width: 420px; }
   #appMain      { padding: 28px 24px; }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SPECIAL CHARACTER SYSTEM
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* Character selector (landing page) */
+.char-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 4px;
+}
+.char-btn {
+  border: 2px solid rgba(244,238,230,0.10);
+  border-radius: var(--r);
+  padding: 8px 10px;
+  font-size: clamp(11px, 3vw, 13px);
+  font-weight: 600;
+  background: rgba(28,22,14,0.7);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.char-btn.selected {
+  background: rgba(200,160,40,0.15);
+  border-color: rgba(200,160,40,0.50);
+  color: var(--scroll-lt);
+}
+.char-btn:hover {
+  background: rgba(200,160,40,0.08);
+  border-color: rgba(200,160,40,0.25);
+  color: var(--text);
+}
+
+/* Ability card container */
+.ability-card {
+  border-radius: var(--r);
+  border: 1px solid var(--line-warm);
+  background: rgba(200,160,40,0.05);
+  padding: clamp(10px, 2.5vw, 14px);
+  margin-top: 14px;
+}
+
+/* Ability buttons panel (turns view) */
+.ability-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+.ability-btn {
+  flex: 1 1 auto;
+  border-radius: var(--r);
+  border: 2px solid;
+  padding: clamp(9px, 2vw, 11px) 14px;
+  font-size: clamp(12px, 3vw, 13px);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+  background: transparent;
+}
+/* Emmit — indigo / time */
+.emmit-ability {
+  border-color: rgba(110,90,200,0.45);
+  color: #B0A0E8;
+}
+.emmit-ability:hover, .emmit-ability.ability-active {
+  background: rgba(110,90,200,0.18);
+  border-color: #B0A0E8;
+  box-shadow: 0 0 12px rgba(110,90,200,0.35);
+}
+/* Hanu — orange / energy */
+.hanu-ability {
+  border-color: var(--orange-border);
+  color: var(--orange-lt);
+}
+.hanu-ability:hover {
+  background: var(--orange-bg);
+  box-shadow: 0 0 12px rgba(208,96,32,0.30);
+}
+/* Ignatia — violet / chaos */
+.ignatia-ability {
+  border-color: rgba(190,60,220,0.42);
+  color: #D878F0;
+}
+.ignatia-ability:hover {
+  background: rgba(190,60,220,0.12);
+  box-shadow: 0 0 12px rgba(190,60,220,0.30);
+}
+
+/* Hurry Up target picker */
+.hurry-target-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: 1px solid rgba(244,238,230,0.15);
+  border-radius: 8px;
+  background: rgba(244,238,230,0.04);
+  color: var(--text);
+  cursor: pointer;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  transition: all .12s;
+  text-align: left;
+}
+.hurry-target-btn:hover {
+  background: var(--orange-bg);
+  border-color: var(--orange-border);
+}
+
+/* Character badge shown in player lists */
+.char-badge {
+  font-size: 11px;
+  color: var(--scroll);
+  margin-left: 4px;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+/* Offline character selector */
+.offline-char-select {
+  background: rgba(244,238,230,0.06);
+  border: 1px solid rgba(244,238,230,0.15);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 4px 4px;
+  cursor: pointer;
+  flex-shrink: 0;
+  max-width: 88px;
+}
