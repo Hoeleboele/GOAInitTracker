@@ -517,16 +517,12 @@
       const t = state.turns[i];
       if (t.status !== 'completed') (t.players || []).forEach(p => futureTurnPlayerIds.add(p.id));
     }
-    // If current turn is a mixed-tie slot, also include ALL pool players (both teams)
-    // so Hanu can target anyone — enemy or friendly — who hasn't gone yet in the tie
-    const activeTurn = state.turns[cur];
-    if (activeTurn && activeTurn.mixedTieSlot) {
-      const tie = state.mixedTies[activeTurn.initiative];
-      if (tie) {
-        (tie.bluePool   || []).forEach(p => futureTurnPlayerIds.add(p.id));
-        (tie.orangePool || []).forEach(p => futureTurnPlayerIds.add(p.id));
-      }
-    }
+    // Also include every mixed-tie pool player (covers: other team in a future mixed slot
+    // whose turn hasn't been created yet, and teammates/enemies when Hanu is in a mixed tie himself)
+    Object.values(state.mixedTies).forEach(tie => {
+      (tie.bluePool   || []).forEach(p => futureTurnPlayerIds.add(p.id));
+      (tie.orangePool || []).forEach(p => futureTurnPlayerIds.add(p.id));
+    });
     const hanuPlayer = Object.values(state.players).find(p => p.character === 'hanu');
     const hanuId = hanuPlayer ? hanuPlayer.id : null;
 
