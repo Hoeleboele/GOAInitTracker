@@ -325,7 +325,7 @@
       const isMixedSlot = !!t.mixedTieSlot;
       const isSimul     = !isMixedSlot && players.length > 1;
       const teamCls     = isMixedSlot ? ` team-${t.teamTurn}`
-                        : (!isSimul && players[0] && players[0].team) ? ` team-${players[0].team}` : '';
+                        : (players[0] && players[0].team) ? ` team-${players[0].team}` : '';
       let names;
       if (isMixedSlot) {
         const tie = t.status !== 'completed' && state.mixedTies && state.mixedTies[t.initiative];
