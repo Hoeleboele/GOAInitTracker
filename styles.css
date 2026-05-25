@@ -891,6 +891,15 @@ input[type=text]::placeholder { color: var(--muted); }
   background: rgba(232,160,48,0.13);
   box-shadow: 0 0 12px rgba(232,160,48,0.30);
 }
+/* Takahide — warm sand / command */
+.takahide-ability {
+  border-color: rgba(200,144,96,0.45);
+  color: #C89060;
+}
+.takahide-ability:hover {
+  background: rgba(200,144,96,0.13);
+  box-shadow: 0 0 12px rgba(200,144,96,0.30);
+}
 
 /* Hurry Up target picker */
 .hurry-target-btn {
@@ -946,6 +955,53 @@ input[type=text]::placeholder { color: var(--muted); }
   background: rgba(232,160,48,0.15);
   border-color: #E8A030;
   box-shadow: 0 0 8px rgba(232,160,48,0.30);
+}
+
+/* Takahide Warlord's Order target rows */
+.takahide-target-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.takahide-target-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.takahide-init-input {
+  width: 56px;
+  background: rgba(244,238,230,0.06);
+  border: 1px solid rgba(200,144,96,0.45);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+  padding: 5px 7px;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.takahide-init-input::-webkit-outer-spin-button,
+.takahide-init-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.takahide-set-btn {
+  border: 1px solid rgba(200,144,96,0.45);
+  border-radius: 6px;
+  background: transparent;
+  color: #C89060;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all .12s;
+  flex-shrink: 0;
+}
+.takahide-set-btn:hover {
+  background: rgba(200,144,96,0.15);
+  border-color: #C89060;
+  box-shadow: 0 0 8px rgba(200,144,96,0.30);
 }
 
 /* Character badge shown in player lists */

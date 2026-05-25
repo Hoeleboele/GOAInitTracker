@@ -461,8 +461,12 @@
     const tigerclawOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'tigerclaw');
     const canPoison = tigerclawOnActive && (myCharacter === 'tigerclaw' || isHost || isOffline);
 
+    // Takahide — Warlord's Order: only during Takahide's own turn
+    const takahideOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'takahide');
+    const canOrder = takahideOnActive && (myCharacter === 'takahide' || isHost || isOffline);
+
     const panel = $('abilityPanel');
-    if (!canHurryUp && !canChaos && !canPoison) { panel.style.display = 'none'; return; }
+    if (!canHurryUp && !canChaos && !canPoison && !canOrder) { panel.style.display = 'none'; return; }
 
     panel.style.display = 'flex';
     let html = '';
@@ -475,6 +479,9 @@
     if (canPoison) {
       html += `<button class="ability-btn tigerclaw-ability" id="btnPoisonToken">☠️ Poison Token</button>`;
     }
+    if (canOrder) {
+      html += `<button class="ability-btn takahide-ability" id="btnWarlordOrder">⚔️ Warlord's Order</button>`;
+    }
     panel.innerHTML = html;
 
     if (canHurryUp) {
@@ -486,6 +493,9 @@
     }
     if (canPoison) {
       $('btnPoisonToken').addEventListener('click', showPoisonPanel);
+    }
+    if (canOrder) {
+      $('btnWarlordOrder').addEventListener('click', showTakahidePanel);
     }
   }
 
@@ -625,6 +635,74 @@
     }
     state.turns.forEach((t, i) => { t.order = i + 1; });
     toast(`☠️ ${esc(target.name)} poisoned! -${penalty} initiative (now ${newInit})`);
+    broadcast({ type: 'state_sync', payload: serializeState() });
+    render();
+  }
+
+  function showTakahidePanel() {
+    $('takahidePanel').style.display = 'block';
+    const takahidePlayer = Object.values(state.players).find(p => p.character === 'takahide');
+    const takaTeam = takahidePlayer ? takahidePlayer.team : null;
+    const takaId   = takahidePlayer ? takahidePlayer.id  : null;
+    const targets = Object.values(state.players).filter(p =>
+      p.isConnected && p.team === takaTeam && p.id !== takaId
+    );
+    if (!targets.length) {
+      $('takahideTargets').innerHTML = '<p style="color:var(--muted);font-size:13px;margin:4px 0">No other friendly players.</p>';
+    } else {
+      $('takahideTargets').innerHTML = targets.map(p =>
+        `<div class="takahide-target-row" data-id="${p.id}">
+          <span class="takahide-target-name">
+            <span class="team-dot ${p.team}"></span>${esc(p.name)}
+            ${p.character ? `<span class="char-badge">${charLabel(p.character)}</span>` : ''}
+          </span>
+          <input class="takahide-init-input" type="number" min="1" max="30"
+            value="${p.initiative || ''}" placeholder="Init" data-id="${p.id}" />
+          <button class="takahide-set-btn" data-id="${p.id}">\u2714 Set</button>
+        </div>`
+      ).join('');
+      $('takahideTargets').querySelectorAll('.takahide-set-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const input = $('takahideTargets').querySelector(`.takahide-init-input[data-id="${btn.dataset.id}"]`);
+          const val = parseInt(input && input.value, 10);
+          if (!val || val < 1) { input && input.focus(); return; }
+          $('takahidePanel').style.display = 'none';
+          sendToHost({ type: 'use_warlord_order', payload: { targetId: btn.dataset.id, newInit: val } });
+        });
+      });
+    }
+  }
+
+  function applyWarlordOrder(targetId, newInit) {
+    const target = state.players[targetId];
+    if (!target) return;
+    const cur = state.currentTurnIndex;
+    state.players[targetId] = { ...target, initiative: newInit };
+    // Reposition in remaining pending turns
+    for (let i = state.turns.length - 1; i > cur; i--) {
+      const t = state.turns[i];
+      if (t.status !== 'completed' && (t.players || []).some(p => p.id === targetId)) {
+        t.players = t.players.filter(p => p.id !== targetId);
+        if (t.players.length === 0) state.turns.splice(i, 1);
+        let insertAt = state.turns.length;
+        for (let j = cur + 1; j < state.turns.length; j++) {
+          const before = state.reverseInitiative
+            ? state.turns[j].initiative > newInit
+            : state.turns[j].initiative < newInit;
+          if (before) { insertAt = j; break; }
+        }
+        state.turns.splice(insertAt, 0, {
+          order:      0,
+          players:    [{ id: targetId, name: target.name, team: target.team }],
+          initiative: newInit,
+          status:     'pending',
+          doneIds:    [],
+        });
+        break;
+      }
+    }
+    state.turns.forEach((t, i) => { t.order = i + 1; });
+    toast(`⚔️ ${esc(target.name)}'s initiative changed to ${newInit}!`);
     broadcast({ type: 'state_sync', payload: serializeState() });
     render();
   }
@@ -1008,6 +1086,10 @@
       }
       case 'use_poison': {
         applyPoison(msg.payload.targetId, msg.payload.penalty);
+        break;
+      }
+      case 'use_warlord_order': {
+        applyWarlordOrder(msg.payload.targetId, msg.payload.newInit);
         break;
       }
       case 'use_chaos_incarnate': {
@@ -1503,6 +1585,10 @@
 
   $('btnCancelPoison').addEventListener('click', () => {
     $('poisonPanel').style.display = 'none';
+  });
+
+  $('btnCancelTakahide').addEventListener('click', () => {
+    $('takahidePanel').style.display = 'none';
   });
 
   // ── Boot ────────────────────────────────────────────────────────────────
