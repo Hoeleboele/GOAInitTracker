@@ -76,6 +76,175 @@
     el.className   = 'status-msg' + (isErr ? ' err' : '');
   }
 
+  // ── Reconnect helpers ────────────────────────────────────────────────────
+  const RECONNECT_KEY     = 'goa_reconnect';
+  const RECONNECT_MAX_AGE = 4 * 60 * 60 * 1000; // 4 hours
+
+  function saveReconnectData(savedState) {
+    try {
+      const existing = loadReconnectData() || {};
+      const data = {
+        ...existing,
+        role:      gameMode === 'host' ? 'host' : 'player',
+        code:      sessionCode,
+        name:      myName,
+        team:      myTeam,
+        character: myCharacter,
+        myId:      myId,
+        timestamp: Date.now(),
+      };
+      if (savedState !== undefined) data.savedState = savedState;
+      localStorage.setItem(RECONNECT_KEY, JSON.stringify(data));
+      updateReconnectButton();
+    } catch (_) {}
+  }
+
+  function clearReconnectData() {
+    try { localStorage.removeItem(RECONNECT_KEY); } catch (_) {}
+    updateReconnectButton();
+  }
+
+  function loadReconnectData() {
+    try {
+      const raw = localStorage.getItem(RECONNECT_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (Date.now() - data.timestamp > RECONNECT_MAX_AGE) { clearReconnectData(); return null; }
+      return data;
+    } catch (_) { return null; }
+  }
+
+  function updateReconnectButton() {
+    const btn  = $('btnReconnect');
+    if (!btn) return;
+    const data = loadReconnectData();
+    if (!data) { btn.style.display = 'none'; return; }
+    btn.style.display = '';
+    btn.textContent = data.role === 'host'
+      ? `↩ Reconnect as Host (${data.code})`
+      : `↩ Rejoin Session (${data.code})`;
+  }
+
+  function doReconnect() {
+    const data = loadReconnectData();
+    if (!data) return;
+
+    myName      = data.name      || '';
+    myTeam      = data.team      || '';
+    myCharacter = data.character || '';
+    myId        = data.myId      || '';
+
+    if (data.role === 'host') {
+      setStatus('Reconnecting session…');
+      gameMode = 'host';
+
+      // Restore game state if saved; mark all other players as disconnected
+      if (data.savedState) {
+        state = {
+          phase:             data.savedState.phase            || 'lobby',
+          players:           data.savedState.players          || {},
+          turns:             data.savedState.turns            || [],
+          currentTurnIndex:  data.savedState.currentTurnIndex || 0,
+          initiativeToken:   data.savedState.initiativeToken  || 'blue',
+          mixedTies:         data.savedState.mixedTies        || {},
+          hostManagesTurns:  data.savedState.hostManagesTurns || false,
+          reverseInitiative: data.savedState.reverseInitiative || false,
+        };
+        usedAbilitiesThisTurn = new Set(data.savedState.usedAbilities || []);
+        // Mark everyone except host as disconnected — they'll reconnect shortly
+        Object.keys(state.players).forEach(id => {
+          if (id !== myId) state.players[id] = { ...state.players[id], isConnected: false };
+        });
+      }
+
+      if (peer) { try { peer.destroy(); } catch (_) {} }
+      peer = new Peer(data.code);
+
+      peer.on('open', id => {
+        sessionCode = id.toUpperCase();
+        saveReconnectData();
+        showApp();
+        render();
+        setStatus('');
+        toast('Session restored — waiting for players to reconnect.');
+      });
+
+      peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); });
+
+      peer.on('error', err => {
+        setStatus('Reconnect failed: ' + (err.message || err.type), true);
+        gameMode = null;
+      });
+
+      peer.on('connection', conn => {
+        playerConns[conn.peer] = conn;
+        setupPlayerConn(conn);
+      });
+
+    } else {
+      // Player reconnecting
+      setStatus('Reconnecting to session…');
+      gameMode = 'player';
+
+      if (peer) { try { peer.destroy(); } catch (_) {} }
+      peer = new Peer();
+
+      peer.on('open', () => {
+        const code = data.code;
+        hostConn = peer.connect(code);
+
+        hostConn.on('open', () => {
+          clearTimeout(reconnectTimeout);
+          sessionCode = code;
+          state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0,
+                    initiativeToken: 'blue', mixedTies: {}, reverseInitiative: false };
+          showApp();
+          render();
+          setStatus('');
+          // Send rejoin message so host can restore our slot
+          hostConn.send({
+            type: 'player_rejoined',
+            payload: {
+              id:        myId,
+              peerId:    peer.id,
+              name:      myName,
+              team:      myTeam,
+              character: myCharacter,
+              isConnected: true,
+            },
+          });
+          saveReconnectData();
+        });
+
+        hostConn.on('data',  msg => handlePlayerMsg(msg));
+        hostConn.on('error', () => {
+          clearTimeout(reconnectTimeout);
+          setStatus('Could not reconnect — host may still be offline.', true);
+          gameMode = null;
+        });
+        hostConn.on('close', () => {
+          $('statusBadge').textContent = 'disconnected';
+          $('statusBadge').className   = 'badge badge-disconnected';
+          toast('Connection to host lost.');
+        });
+      });
+
+      peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); });
+      peer.on('error', err => {
+        clearTimeout(reconnectTimeout);
+        setStatus('Network error: ' + (err.message || err.type), true);
+        gameMode = null;
+      });
+
+      const reconnectTimeout = setTimeout(() => {
+        if (!hostConn || !hostConn.open) {
+          setStatus('Could not reconnect — host may still be offline.', true);
+          gameMode = null;
+        }
+      }, 10000);
+    }
+  }
+
   // ── Character helpers ────────────────────────────────────────────────────
     const CHARACTERS = [
     { id: 'arien',       name: 'Arien',        subtitle: 'the Tidemaster',    accent: '#4A9BB5',
@@ -1135,7 +1304,7 @@
   }
 
   function serializeState() {
-    return {
+    const data = {
       phase:             state.phase,
       players:           state.players,
       turns:             state.turns,
@@ -1146,6 +1315,9 @@
       reverseInitiative: state.reverseInitiative,
       usedAbilities:     [...usedAbilitiesThisTurn],
     };
+    // Keep localStorage in sync so the host can reconnect with full state
+    if (gameMode === 'host') saveReconnectData(data);
+    return data;
   }
 
   // ── Messaging ───────────────────────────────────────────────────────────
@@ -1169,6 +1341,24 @@
       case 'player_joined': {
         const p = msg.payload;
         state.players[p.id] = p;
+        broadcast({ type: 'state_sync', payload: serializeState() });
+        render();
+        break;
+      }
+      case 'player_rejoined': {
+        const p = msg.payload;
+        if (state.players[p.id]) {
+          // Restore existing slot: update connection info and mark connected
+          state.players[p.id] = {
+            ...state.players[p.id],
+            peerId:      p.peerId,
+            isConnected: true,
+          };
+        } else {
+          // Unknown ID — treat as a new player
+          state.players[p.id] = { ...p, submissionStatus: 'not-submitted' };
+        }
+        // Send the full current state to the reconnecting player
         broadcast({ type: 'state_sync', payload: serializeState() });
         render();
         break;
@@ -1363,6 +1553,7 @@
         initiativeToken: 'blue',
         mixedTies: {},
       };
+      saveReconnectData();
       showApp();
       render();
       setStatus('');
@@ -1415,6 +1606,7 @@
             isConnected: true,
           },
         });
+        saveReconnectData();
       });
 
       hostConn.on('data',  msg => handlePlayerMsg(msg));
@@ -1455,6 +1647,7 @@
     gameMode    = null;
     sessionCode = myId = myName = myTeam = '';
     myCharacter = '';
+    clearReconnectData();
     updateSelectedCharDisplay();
     offlinePlayers     = [];
     offlineInitIdx     = 0;
@@ -1503,6 +1696,11 @@
     $('landingMain').style.display = 'none';
     $('landingMode').style.display = 'flex';
   });
+
+  $('btnReconnect').addEventListener('click', doReconnect);
+
+  // Show reconnect button if a previous session is saved
+  updateReconnectButton();
 
   $('btnPlayOffline').addEventListener('click', () => {
     gameMode           = 'offline';
