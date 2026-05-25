@@ -811,6 +811,19 @@ input[type=text]::placeholder { color: var(--muted); }
   .pad-btn      { padding: 12px 6px; font-size: 18px; }
 }
 
+/* Mobile only — move the character banner to the bottom of the initiative screen */
+@media (max-width: 599px) {
+  #viewInitiative {
+    display: flex;
+    flex-direction: column;
+  }
+  #viewInitiative .initiative-char-banner {
+    order: 99;
+    margin: 20px calc(-1 * clamp(12px, 4vw, 20px)) calc(-1 * clamp(14px, 4vw, 24px));
+    border-radius: 0;
+  }
+}
+
 /* Tablets and up (> 600px) — landing card gets slightly more presence */
 @media (min-width: 600px) {
   .landing-card { max-width: 420px; }
