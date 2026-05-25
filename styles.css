@@ -640,7 +640,24 @@ input[type=text]::placeholder { color: var(--muted); }
   align-items: center;
   gap: clamp(10px, 3vw, 15px);
   transition: background .2s, border-color .2s;
+  position: relative;
+  overflow: hidden;
 }
+
+/* Character avatar ghost — subtle background from the player's artwork */
+.turn-row::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--avatar-url, none);
+  background-size: cover;
+  background-position: center 18%;
+  opacity: 0.15;
+  z-index: 0;
+  pointer-events: none;
+}
+/* Ensure row content stays above the ghost image */
+.turn-row > * { position: relative; z-index: 1; }
 
 /* Active turn — parchment gold glow, like the illuminated scroll */
 .turn-row.active {

@@ -499,6 +499,18 @@
       const isSimul     = !isMixedSlot && players.length > 1;
       const teamCls     = isMixedSlot ? ` team-${t.teamTurn}`
                         : (players[0] && players[0].team) ? ` team-${players[0].team}` : '';
+
+      // Resolve primary character avatar for the ghost background
+      const getAvatar = id => { const c = state.players[id]; return c && c.character ? charAvatarPath(c.character) : ''; };
+      let bgAvatar = '';
+      if (isMixedSlot) {
+        const tie = state.mixedTies && state.mixedTies[t.initiative];
+        const pool = tie && tie[`${t.teamTurn}Pool`];
+        bgAvatar = pool && pool[0] ? getAvatar(pool[0].id) : '';
+      } else if (players.length > 0) {
+        bgAvatar = getAvatar(players[0].id);
+      }
+      const avatarAttr = bgAvatar ? ` style="--avatar-url: url('${bgAvatar}')"` : '';
       let names;
       if (isMixedSlot) {
         const tie = t.status !== 'completed' && state.mixedTies && state.mixedTies[t.initiative];
@@ -527,7 +539,7 @@
         waitInfo = `<div class="turn-wait">Simultaneous — ${done}/${players.length} ready</div>`;
       }
       return `
-        <div class="turn-row${cls}${teamCls}">
+        <div class="turn-row${cls}${teamCls}"${avatarAttr}>
           <div class="turn-order">${t.order}</div>
           <div class="turn-info">
             <div class="turn-name">${names}</div>
