@@ -1339,9 +1339,10 @@
   }
 
   function applyCharacterTheme() {
-    const view   = $('viewInitiative');
-    const banner = $('initiativeCharBanner');
-    const title  = $('initiativePhaseTitle');
+    const view    = $('viewInitiative');
+    const banner  = $('initiativeCharBanner');
+    const title   = $('initiativePhaseTitle');
+    const ability = $('initiativeCharAbility');
     if (!view || !banner) return;
     const isOnline = gameMode === 'host' || gameMode === 'player';
     if (!isOnline || !myCharacter) {
@@ -1349,6 +1350,7 @@
       view.classList.remove('char-themed');
       view.style.removeProperty('--char-accent');
       view.style.removeProperty('--char-accent-dim');
+      view.style.removeProperty('background');
       if (title) title.style.display = '';
       return;
     }
@@ -1356,15 +1358,23 @@
     if (!c) {
       banner.style.display = 'none';
       view.classList.remove('char-themed');
+      view.style.removeProperty('background');
       if (title) title.style.display = '';
       return;
     }
     $('initiativeCharImg').src = charAvatarPath(c.id);
     $('initiativeCharName').textContent = (c.special ? c.special + ' ' : '') + c.name;
+    if (ability) {
+      const abilityText = c.id === 'emmit' ? 'Reverse Time' : c.id === 'hanu' ? 'Hurry Up' : c.id === 'ignatia' ? 'Chaos Incarnate' : '';
+      ability.textContent = abilityText;
+      ability.style.display = abilityText ? '' : 'none';
+    }
     banner.style.display = 'block';
     view.classList.add('char-themed');
     view.style.setProperty('--char-accent', c.accent);
     view.style.setProperty('--char-accent-dim', c.accent + '30');
+    // Atmospheric background glow matching the character
+    view.style.background = `radial-gradient(ellipse 110% 45% at 50% 0%, ${c.accent}1A 0%, transparent 75%)`;
     if (title) title.style.display = 'none';
   }
 

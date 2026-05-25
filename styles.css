@@ -1065,10 +1065,10 @@ input[type=text]::placeholder { color: var(--muted); }
    =============================================================================== */
 
 .initiative-char-banner {
-  margin: calc(-1 * clamp(14px, 4vw, 24px)) calc(-1 * clamp(12px, 4vw, 20px)) 18px;
+  margin: calc(-1 * clamp(14px, 4vw, 24px)) calc(-1 * clamp(12px, 4vw, 20px)) 20px;
   position: relative;
   overflow: hidden;
-  height: clamp(140px, 28vw, 200px);
+  height: clamp(200px, 50vw, 280px);
   border-radius: 0;
 }
 .initiative-char-banner img {
@@ -1078,42 +1078,84 @@ input[type=text]::placeholder { color: var(--muted); }
   object-position: center 18%;
   display: block;
 }
+/* Gradient fade to background */
 .initiative-char-banner::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to bottom,
-    rgba(19,16,13,0.04) 0%,
-    rgba(19,16,13,0.50) 65%,
-    rgba(19,16,13,0.93) 100%
+    rgba(19,16,13,0.0) 0%,
+    rgba(19,16,13,0.25) 50%,
+    rgba(19,16,13,0.88) 100%
   );
   pointer-events: none;
 }
+/* Accent colour bar along the bottom edge */
+.initiative-char-banner::before {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--char-accent, transparent);
+  z-index: 2;
+  opacity: 0.85;
+}
 .char-banner-overlay {
   position: absolute;
-  bottom: 11px;
+  bottom: 14px;
   left: 15px;
-  z-index: 1;
-  font-size: 17px;
-  font-weight: 800;
-  color: #fff;
-  text-shadow: 0 1px 10px rgba(0,0,0,0.95), 0 0 28px rgba(0,0,0,0.6);
-  letter-spacing: 0.04em;
+  z-index: 3;
   pointer-events: none;
+}
+.char-banner-overlay > span:first-child {
+  display: block;
+  font-size: 20px;
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 1px 12px rgba(0,0,0,0.98), 0 0 32px rgba(0,0,0,0.7);
+  letter-spacing: 0.05em;
+}
+.char-banner-ability {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--char-accent, rgba(255,255,255,0.75));
+  text-shadow: 0 1px 8px rgba(0,0,0,0.95);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  margin-top: 3px;
+  opacity: 0.95;
 }
 
 /* Accent theming on the initiative view */
 #viewInitiative.char-themed .btn-primary {
   background: var(--char-accent, var(--scroll));
   border-color: var(--char-accent, var(--scroll-dk));
-  color: rgba(10,8,6,0.90);
-  box-shadow: 0 4px 20px var(--char-accent-dim, rgba(0,0,0,0.2));
+  color: rgba(10,8,6,0.92);
+  box-shadow: 0 4px 28px var(--char-accent-dim, rgba(0,0,0,0.2)), 0 0 0 1px var(--char-accent);
+  font-size: clamp(15px, 4vw, 17px);
+  letter-spacing: 0.03em;
 }
 #viewInitiative.char-themed .btn-primary:not(:disabled):hover {
-  filter: brightness(1.12);
+  filter: brightness(1.15);
+  box-shadow: 0 6px 36px var(--char-accent-dim), 0 0 0 2px var(--char-accent);
 }
 #viewInitiative.char-themed .number-display {
+  color: var(--char-accent, var(--scroll));
   border-color: var(--char-accent, var(--scroll));
+  text-shadow: 0 0 36px var(--char-accent-dim, rgba(200,160,40,0.4));
+  box-shadow: 0 0 28px var(--char-accent-dim, transparent);
+}
+#viewInitiative.char-themed .pad-btn {
+  border-color: var(--char-accent-dim, rgba(200,160,40,0.18));
+}
+#viewInitiative.char-themed .pad-btn:hover {
+  background: var(--char-accent-dim);
+  border-color: var(--char-accent);
+  color: var(--char-accent);
+  box-shadow: 0 0 12px var(--char-accent-dim);
 }
 
