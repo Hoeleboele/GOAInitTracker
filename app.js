@@ -700,7 +700,8 @@
     broadcast({ type: 'turn_advanced',
       payload: { turns: state.turns, currentTurnIndex: cur,
                  initiativeToken: state.initiativeToken, mixedTies: state.mixedTies,
-                 reverseInitiative: state.reverseInitiative } });
+                 reverseInitiative: state.reverseInitiative,
+                 usedAbilities: [...usedAbilitiesThisTurn] } });
     render();
   }
 
@@ -1104,7 +1105,8 @@
     state.currentTurnIndex    = next;
     broadcast({ type: 'turn_advanced',
       payload: { turns: state.turns, currentTurnIndex: next,
-                 initiativeToken: state.initiativeToken, mixedTies: state.mixedTies } });
+                 initiativeToken: state.initiativeToken, mixedTies: state.mixedTies,
+                 usedAbilities: [] } });
     render();
   }
 
@@ -1142,6 +1144,7 @@
       mixedTies:         state.mixedTies,
       hostManagesTurns:  state.hostManagesTurns,
       reverseInitiative: state.reverseInitiative,
+      usedAbilities:     [...usedAbilitiesThisTurn],
     };
   }
 
@@ -1270,6 +1273,7 @@
         state.mixedTies        = msg.payload.mixedTies || {};
         state.hostManagesTurns = msg.payload.hostManagesTurns || false;
         state.reverseInitiative = msg.payload.reverseInitiative || false;
+        if (msg.payload.usedAbilities) usedAbilitiesThisTurn = new Set(msg.payload.usedAbilities);
         render();
         break;
 
@@ -1286,9 +1290,10 @@
       case 'turn_advanced':
         state.turns            = msg.payload.turns;
         state.currentTurnIndex = msg.payload.currentTurnIndex;
-        if (msg.payload.initiativeToken  !== undefined) state.initiativeToken  = msg.payload.initiativeToken;
-        if (msg.payload.mixedTies        !== undefined) state.mixedTies        = msg.payload.mixedTies;
+        if (msg.payload.initiativeToken   !== undefined) state.initiativeToken   = msg.payload.initiativeToken;
+        if (msg.payload.mixedTies         !== undefined) state.mixedTies         = msg.payload.mixedTies;
         if (msg.payload.reverseInitiative !== undefined) state.reverseInitiative = msg.payload.reverseInitiative;
+        if (msg.payload.usedAbilities     !== undefined) usedAbilitiesThisTurn   = new Set(msg.payload.usedAbilities);
         render();
         break;
 
