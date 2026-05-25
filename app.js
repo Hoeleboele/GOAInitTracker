@@ -487,7 +487,7 @@
       html += `<button class="ability-btn tigerclaw-ability" id="btnPoisonToken">☠️ Poison Token</button>`;
     }
     if (canOrder) {
-      html += `<button class="ability-btn takahide-ability" id="btnWarlordOrder">⚔️ Warlord's Order</button>`;
+      html += `<button class="ability-btn takahide-ability" id="btnWarlordOrder">🍶 Hold my sake</button>`;
     }
     panel.innerHTML = html;
 
