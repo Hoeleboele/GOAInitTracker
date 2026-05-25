@@ -29,7 +29,8 @@
   // initiative pad state
   let initValue  = '';
   let initLocked = false;
-  let lastNotifiedTurnIndex = -1; // tracks last turn we fired the notification for
+  let lastNotifiedTurnIndex  = -1; // tracks last turn we fired the notification for
+  let usedAbilitiesThisTurn  = new Set(); // abilities used this turn (each can only fire once)
 
   // ── Offline mode state ───────────────────────────────────────
   let offlinePlayers     = [];     // [{ id, name, team, initiative }]
@@ -477,16 +478,16 @@
 
     panel.style.display = 'flex';
     let html = '';
-    if (canHurryUp) {
+    if (canHurryUp && !usedAbilitiesThisTurn.has('hurryUp')) {
       html += `<button class="ability-btn hanu-ability" id="btnHurryUp">⚡ Hurry Up!</button>`;
     }
-    if (canChaos) {
+    if (canChaos && !usedAbilitiesThisTurn.has('chaos')) {
       html += `<button class="ability-btn ignatia-ability" id="btnChaosIncarnate">🌀 Chaos Incarnate</button>`;
     }
-    if (canPoison) {
+    if (canPoison && !usedAbilitiesThisTurn.has('poison')) {
       html += `<button class="ability-btn tigerclaw-ability" id="btnPoisonToken">☠️ Poison Token</button>`;
     }
-    if (canOrder) {
+    if (canOrder && !usedAbilitiesThisTurn.has('warlordOrder')) {
       html += `<button class="ability-btn takahide-ability" id="btnWarlordOrder">🍶 Hold my sake</button>`;
     }
     panel.innerHTML = html;
@@ -494,9 +495,12 @@
     if (canHurryUp) {
       $('btnHurryUp').addEventListener('click', showHurryUpPanel);
     }
-    if (canChaos) {
-      $('btnChaosIncarnate').addEventListener('click', () =>
-        sendToHost({ type: 'use_chaos_incarnate' }));
+    if (canChaos && !usedAbilitiesThisTurn.has('chaos')) {
+      $('btnChaosIncarnate').addEventListener('click', () => {
+        usedAbilitiesThisTurn.add('chaos');
+        sendToHost({ type: 'use_chaos_incarnate' });
+        renderAbilities();
+      });
     }
     if (canPoison) {
       $('btnPoisonToken').addEventListener('click', showPoisonPanel);
@@ -541,7 +545,9 @@
       $('hurryUpTargets').querySelectorAll('.hurry-target-btn').forEach(btn =>
         btn.addEventListener('click', () => {
           $('hurryUpPanel').style.display = 'none';
+          usedAbilitiesThisTurn.add('hurryUp');
           sendToHost({ type: 'use_hurry_up', payload: { targetId: btn.dataset.id } });
+          renderAbilities();
         })
       );
     }
@@ -674,6 +680,7 @@
     state.players[targetId] = { ...target, initiative: NEW_INIT };
     insertPlayerAtInitiative(targetId, target.name, target.team, NEW_INIT);
 
+    usedAbilitiesThisTurn.add('hurryUp');
     toast(`⚡ ${esc(target.name)} rushes to initiative 11!`);
     broadcast({ type: 'turn_advanced',
       payload: { turns: state.turns, currentTurnIndex: cur,
@@ -705,7 +712,9 @@
       $('poisonTargets').querySelectorAll('.poison-penalty-btn').forEach(btn =>
         btn.addEventListener('click', () => {
           $('poisonPanel').style.display = 'none';
+          usedAbilitiesThisTurn.add('poison');
           sendToHost({ type: 'use_poison', payload: { targetId: btn.dataset.id, penalty: +btn.dataset.penalty } });
+          renderAbilities();
         })
       );
     }
@@ -726,6 +735,7 @@
       state.reverseInitiative ? newInit > currentInit : newInit < currentInit
     );
     if (stillFuture) insertPlayerAtInitiative(targetId, target.name, target.team, newInit);
+    usedAbilitiesThisTurn.add('poison');
     toast(`☠️ ${esc(target.name)} poisoned! -${penalty} initiative (now ${newInit})`);
     broadcast({ type: 'state_sync', payload: serializeState() });
     render();
@@ -770,7 +780,9 @@
           const val = parseInt(input && input.value, 10);
           if (!val || val < 1) { input && input.focus(); return; }
           $('takahidePanel').style.display = 'none';
+          usedAbilitiesThisTurn.add('warlordOrder');
           sendToHost({ type: 'use_warlord_order', payload: { targetId: btn.dataset.id, newInit: val } });
+          renderAbilities();
         });
       });
     }
@@ -783,6 +795,7 @@
     state.players[targetId] = { ...target, initiative: newInit };
     purgePlayerFromUpcoming(targetId);
     insertPlayerAtInitiative(targetId, target.name, target.team, newInit);
+    usedAbilitiesThisTurn.add('warlordOrder');
     toast(`⚔️ ${esc(target.name)}'s initiative changed to ${newInit}!`);
     broadcast({ type: 'state_sync', payload: serializeState() });
     render();
@@ -1005,10 +1018,11 @@
   }
 
   function advanceTurn() {
-    // Close any open ability panels
+    // Close any open ability panels and reset used-ability tracking for the new turn
     ['hurryUpPanel', 'poisonPanel', 'takahidePanel'].forEach(id => {
       const el = $(id); if (el) el.style.display = 'none';
     });
+    usedAbilitiesThisTurn.clear();
 
     const cur         = state.currentTurnIndex;
     const currentTurn = state.turns[cur];
@@ -1179,6 +1193,7 @@
         break;
       }
       case 'use_chaos_incarnate': {
+        usedAbilitiesThisTurn.add('chaos');
         state.initiativeToken = state.initiativeToken === 'blue' ? 'orange' : 'blue';
         toast('\ud83c\udf00 Chaos Incarnate! Token flipped to ' + state.initiativeToken + '.');
         broadcast({ type: 'state_sync', payload: serializeState() });
