@@ -818,12 +818,8 @@
 
     const next = cur + 1;
     if (next >= state.turns.length) {
-      // All turns done — show round-complete screen before starting new round
-      state.turns.forEach(t => { t.status = 'completed'; });
-      state.phase = 'round-complete';
-      broadcast({ type: 'round_ended',
-        payload: { initiativeToken: state.initiativeToken } });
-      render();
+      // All turns done — auto-start next round
+      startNewRound();
       return;
     }
     state.turns[cur].status   = 'completed';
@@ -837,6 +833,8 @@
   }
 
   function startNewRound() {
+    const quoteEl = $('initiativeCharQuote');
+    if (quoteEl) quoteEl.textContent = '';
     state.phase = 'initiative';
     state.turns = [];
     state.currentTurnIndex = 0;
@@ -1404,7 +1402,7 @@
       ability.style.display = abilityText ? '' : 'none';
     }
     const quote = $('initiativeCharQuote');
-    if (quote) {
+    if (quote && !quote.textContent) {
       const pool = c.quotes && c.quotes.length ? c.quotes : [];
       const picked = pool[Math.floor(Math.random() * pool.length)] || '';
       quote.textContent = picked ? '“' + picked + '”' : '';
