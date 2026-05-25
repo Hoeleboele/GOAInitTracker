@@ -412,9 +412,11 @@
         </div>
         <select class="offline-char-select" data-idx="${i}">
           <option value="">—</option>
-          <option value="emmit"   ${p.character === 'emmit'   ? 'selected' : ''}>⏪ Emmit</option>
-          <option value="hanu"    ${p.character === 'hanu'    ? 'selected' : ''}>⚡ Hanu</option>
-          <option value="ignatia" ${p.character === 'ignatia' ? 'selected' : ''}>🌀 Ignatia</option>
+          <option value="emmit"      ${p.character === 'emmit'      ? 'selected' : ''}>⏪ Emmit</option>
+          <option value="hanu"       ${p.character === 'hanu'       ? 'selected' : ''}>⚡ Hanu</option>
+          <option value="ignatia"    ${p.character === 'ignatia'    ? 'selected' : ''}>🌀 Ignatia</option>
+          <option value="tigerclaw"  ${p.character === 'tigerclaw'  ? 'selected' : ''}>☠️ Tigerclaw</option>
+          <option value="takahide"   ${p.character === 'takahide'   ? 'selected' : ''}>⚔️ Takahide</option>
         </select>
         <button class="btn-remove-offline" data-idx="${i}" title="Remove">&#x2715;</button>
       </div>
