@@ -577,6 +577,14 @@ input[type=text]::placeholder { color: var(--muted); }
   margin-bottom: 16px;
   letter-spacing: 2px;
   text-shadow: 0 0 28px rgba(200,160,40,0.45);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.number-display.is-placeholder {
+  font-size: clamp(16px, 4.5vw, 22px);
+  letter-spacing: 0;
+  font-weight: 600;
+  opacity: 0.55;
 }
 
 .number-pad {

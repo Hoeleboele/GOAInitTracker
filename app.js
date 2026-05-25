@@ -229,8 +229,7 @@
       case 'initiative':
         show('viewInitiative');
         applyCharacterTheme();
-        $('initiativeDisplay').textContent = initValue || 'Enter initiative';
-        $('btnLock').disabled = !initValue || initLocked;
+        updatePad();
         if (gameMode === 'offline') {
           const op = offlinePlayers[offlineInitIdx];
           $('offlineInitFor').innerHTML = op
@@ -836,15 +835,24 @@
 
   // ── Initiative pad ──────────────────────────────────────────────────────
   function updatePad() {
-    $('initiativeDisplay').textContent = initValue || 'Enter initiative';
+    const el = $('initiativeDisplay');
+    if (initValue) {
+      el.textContent = initValue;
+      el.classList.remove('is-placeholder');
+    } else {
+      el.textContent = 'Enter initiative';
+      el.classList.add('is-placeholder');
+    }
     $('btnLock').disabled = !initValue || initLocked;
   }
 
   document.querySelectorAll('.pad-btn[data-val]').forEach(btn => {
     btn.addEventListener('click', () => {
       if (initLocked) return;
-      if (initValue.length >= 3) return;
-      initValue += btn.dataset.val;
+      if (initValue.length >= 2) return;
+      const next = initValue + btn.dataset.val;
+      if (+next > 99) return;
+      initValue = next;
       updatePad();
       if (initValue) {
         sendToHost({ type: 'player_initiative_updated',
