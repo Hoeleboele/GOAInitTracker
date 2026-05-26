@@ -600,6 +600,7 @@
           <option value="emmit"      ${p.character === 'emmit'      ? 'selected' : ''}>⏪ Emmit</option>
           <option value="hanu"       ${p.character === 'hanu'       ? 'selected' : ''}>⚡ Hanu</option>
           <option value="ignatia"    ${p.character === 'ignatia'    ? 'selected' : ''}>🌀 Ignatia</option>
+          <option value="tali"       ${p.character === 'tali'       ? 'selected' : ''}>🧊 Tali</option>
           <option value="tigerclaw"  ${p.character === 'tigerclaw'  ? 'selected' : ''}>☠️ Tigerclaw</option>
           <option value="takahide"   ${p.character === 'takahide'   ? 'selected' : ''}>⚔️ Takahide</option>
         </select>
@@ -1926,7 +1927,13 @@
     if (!myCharacter) { disp.style.display = 'none'; return; }
     const c = charData(myCharacter);
     if (!c) { disp.style.display = 'none'; return; }
-    const abilityName = c.id === 'emmit' ? 'Reverse Time' : c.id === 'hanu' ? 'Hurry Up' : c.id === 'ignatia' ? 'Chaos Incarnate' : '';
+    const abilityName = c.id === 'emmit' ? 'Reverse Time'
+      : c.id === 'hanu'      ? 'Hurry Up'
+      : c.id === 'ignatia'   ? 'Chaos Incarnate'
+      : c.id === 'tigerclaw' ? 'Poison Token'
+      : c.id === 'takahide'  ? "Warlord's Order"
+      : c.id === 'tali'      ? 'Ice Barrier'
+      : '';
     disp.innerHTML = `
       <img class="selchar-avatar" src="${charAvatarPath(c.id)}" alt="${esc(c.name)}" />
       <div class="selchar-info">
