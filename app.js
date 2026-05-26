@@ -721,15 +721,6 @@
       (tie.bluePool   || []).forEach(p => futureTurnPlayerIds.add(p.id));
       (tie.orangePool || []).forEach(p => futureTurnPlayerIds.add(p.id));
     });
-    // Also include players in the current slot who haven't ended their turn yet
-    // (same-initiative teammates in a simultaneous slot)
-    const currentTurn = state.turns[cur];
-    if (currentTurn) {
-      const doneSet = new Set(currentTurn.doneIds || []);
-      (currentTurn.players || []).forEach(p => {
-        if (!doneSet.has(p.id)) futureTurnPlayerIds.add(p.id);
-      });
-    }
     const hanuPlayer = Object.values(state.players).find(p => p.character === 'hanu');
     const hanuId = hanuPlayer ? hanuPlayer.id : null;
 
@@ -900,11 +891,21 @@
     $('poisonPanel').style.display = 'block';
     const tigerPlayer = Object.values(state.players).find(p => p.character === 'tigerclaw');
     const tigerTeam   = tigerPlayer ? tigerPlayer.team : null;
+    const cur = state.currentTurnIndex;
+    const futurePendingIds = new Set();
+    for (let i = cur + 1; i < state.turns.length; i++) {
+      const t = state.turns[i];
+      if (t.status !== 'completed') (t.players || []).forEach(p => futurePendingIds.add(p.id));
+    }
+    Object.values(state.mixedTies).forEach(tie => {
+      (tie.bluePool   || []).forEach(p => futurePendingIds.add(p.id));
+      (tie.orangePool || []).forEach(p => futurePendingIds.add(p.id));
+    });
     const targets = Object.values(state.players).filter(p =>
-      p.isConnected && p.team !== tigerTeam
+      p.isConnected && p.team !== tigerTeam && futurePendingIds.has(p.id)
     );
     if (!targets.length) {
-      $('poisonTargets').innerHTML = '<p style="color:var(--muted);font-size:13px;margin:4px 0">No enemy players.</p>';
+      $('poisonTargets').innerHTML = '<p style="color:var(--muted);font-size:13px;margin:4px 0">No enemy players with a pending turn.</p>';
     } else {
       $('poisonTargets').innerHTML = targets.map(p =>
         `<div class="poison-target-row">
