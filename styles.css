@@ -934,6 +934,15 @@ input[type=text]::placeholder { color: var(--muted); }
   background: rgba(200,144,96,0.13);
   box-shadow: 0 0 12px rgba(200,144,96,0.30);
 }
+/* Tali — ice blue / frost */
+.tali-ability {
+  border-color: rgba(64,176,208,0.45);
+  color: #40B0D0;
+}
+.tali-ability:hover {
+  background: rgba(64,176,208,0.13);
+  box-shadow: 0 0 12px rgba(64,176,208,0.30);
+}
 
 /* Hurry Up target picker */
 .hurry-target-btn {

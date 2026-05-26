@@ -657,8 +657,12 @@
     const takahideOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'takahide');
     const canOrder = takahideOnActive && (myCharacter === 'takahide' || isHost || isOffline);
 
+    // Tali — Ice Barrier: only during Tali's own turn
+    const taliOnActive = activeIds.some(id => state.players[id] && state.players[id].character === 'tali');
+    const canIceBarrier = taliOnActive && (myCharacter === 'tali' || isHost || isOffline);
+
     const panel = $('abilityPanel');
-    if (!canHurryUp && !canChaos && !canPoison && !canOrder) { panel.style.display = 'none'; return; }
+    if (!canHurryUp && !canChaos && !canPoison && !canOrder && !canIceBarrier) { panel.style.display = 'none'; return; }
 
     panel.style.display = 'flex';
     let html = '';
@@ -673,6 +677,9 @@
     }
     if (canOrder && !usedAbilitiesThisTurn.has('warlordOrder')) {
       html += `<button class="ability-btn takahide-ability" id="btnWarlordOrder">🍶 Hold my sake</button>`;
+    }
+    if (canIceBarrier && !usedAbilitiesThisTurn.has('iceBarrier')) {
+      html += `<button class="ability-btn tali-ability" id="btnIceBarrier">🧊 Ice Barrier</button>`;
     }
     panel.innerHTML = html;
 
@@ -691,6 +698,9 @@
     }
     if (canOrder) {
       $('btnWarlordOrder').addEventListener('click', showTakahidePanel);
+    }
+    if (canIceBarrier && !usedAbilitiesThisTurn.has('iceBarrier')) {
+      $('btnIceBarrier').addEventListener('click', showIceBarrierPanel);
     }
   }
 
@@ -998,7 +1008,75 @@
     render();
   }
 
-  // ── Offline turn advancement ────────────────────────────────────────────
+  function showIceBarrierPanel() {
+    $('taliPanel').style.display = 'block';
+    const taliPlayer = Object.values(state.players).find(p => p.character === 'tali');
+    const taliTeam   = taliPlayer ? taliPlayer.team : null;
+    const cur = state.currentTurnIndex;
+    // Only enemy players with a pending future turn
+    const futurePendingIds = new Set();
+    for (let i = cur + 1; i < state.turns.length; i++) {
+      const t = state.turns[i];
+      if (t.status !== 'completed') (t.players || []).forEach(p => futurePendingIds.add(p.id));
+    }
+    Object.values(state.mixedTies).forEach(tie => {
+      (tie.bluePool   || []).forEach(p => futurePendingIds.add(p.id));
+      (tie.orangePool || []).forEach(p => futurePendingIds.add(p.id));
+    });
+    const targets = Object.values(state.players).filter(p =>
+      p.isConnected && p.team !== taliTeam && futurePendingIds.has(p.id)
+    );
+    if (!targets.length) {
+      $('taliTargets').innerHTML = '<p style="color:var(--muted);font-size:13px;margin:4px 0">No enemy players with a pending turn.</p>';
+    } else {
+      $('taliTargets').innerHTML = targets.map(p =>
+        `<div class="poison-target-row">
+          <span class="poison-target-name">
+            <span class="team-dot ${p.team}"></span>${esc(p.name)}
+            ${p.character ? `<span class="char-badge">${charLabel(p.character)}</span>` : ''}
+          </span>
+          <button class="poison-penalty-btn tali-penalty" data-id="${p.id}" data-penalty="1">-1</button>
+          <button class="poison-penalty-btn tali-penalty" data-id="${p.id}" data-penalty="2">-2</button>
+          <button class="poison-penalty-btn tali-penalty" data-id="${p.id}" data-penalty="3">-3</button>
+        </div>`
+      ).join('');
+      $('taliTargets').querySelectorAll('.tali-penalty').forEach(btn =>
+        btn.addEventListener('click', () => {
+          $('taliPanel').style.display = 'none';
+          usedAbilitiesThisTurn.add('iceBarrier');
+          sendToHost({ type: 'use_ice_barrier', payload: { targetId: btn.dataset.id, penalty: +btn.dataset.penalty } });
+          renderAbilities();
+        })
+      );
+    }
+  }
+
+  function applyIceBarrier(targetId, penalty) {
+    const target = state.players[targetId];
+    if (!target) return;
+    const newInit = target.initiative - penalty;
+    const cur     = state.currentTurnIndex;
+    const hadFutureTurn =
+      state.turns.slice(cur + 1).some(t =>
+        t.status !== 'completed' && (t.players || []).some(p => p.id === targetId)
+      ) ||
+      Object.values(state.mixedTies).some(tie =>
+        [...(tie.bluePool || []), ...(tie.orangePool || [])].some(p => p.id === targetId)
+      );
+    state.players[targetId] = { ...target, initiative: newInit };
+    purgePlayerFromUpcoming(targetId);
+    const currentInit = state.turns[cur] ? state.turns[cur].initiative : null;
+    const stillFuture = currentInit === null || (
+      state.reverseInitiative ? newInit > currentInit : newInit < currentInit
+    );
+    if (hadFutureTurn && stillFuture) insertPlayerAtInitiative(targetId, target.name, target.team, newInit);
+    usedAbilitiesThisTurn.add('iceBarrier');
+    toast(`🧊 ${esc(target.name)} frozen! -${penalty} initiative (now ${newInit})`);
+    broadcast({ type: 'state_sync', payload: serializeState() });
+    render();
+  }
+
+
   function endTurnOffline() {
     const turn = state.turns[state.currentTurnIndex];
     if (!turn) return;
@@ -1225,7 +1303,7 @@
 
   function advanceTurn() {
     // Close any open ability panels and reset used-ability tracking for the new turn
-    ['hurryUpPanel', 'poisonPanel', 'takahidePanel'].forEach(id => {
+    ['hurryUpPanel', 'poisonPanel', 'takahidePanel', 'taliPanel'].forEach(id => {
       const el = $(id); if (el) el.style.display = 'none';
     });
     usedAbilitiesThisTurn.clear();
@@ -1419,6 +1497,10 @@
       }
       case 'use_warlord_order': {
         applyWarlordOrder(msg.payload.targetId, msg.payload.newInit);
+        break;
+      }
+      case 'use_ice_barrier': {
+        applyIceBarrier(msg.payload.targetId, msg.payload.penalty);
         break;
       }
       case 'use_chaos_incarnate': {
@@ -1935,6 +2017,10 @@
 
   $('btnCancelTakahide').addEventListener('click', () => {
     $('takahidePanel').style.display = 'none';
+  });
+
+  $('btnCancelTali').addEventListener('click', () => {
+    $('taliPanel').style.display = 'none';
   });
 
   // ── Boot ────────────────────────────────────────────────────────────────
