@@ -721,6 +721,12 @@
       (tie.bluePool   || []).forEach(p => futureTurnPlayerIds.add(p.id));
       (tie.orangePool || []).forEach(p => futureTurnPlayerIds.add(p.id));
     });
+    // Also include players in the current slot who haven't ended their turn yet
+    const currentTurn = state.turns[cur];
+    if (currentTurn) {
+      const doneSet = new Set(currentTurn.doneIds || []);
+      (currentTurn.players || []).forEach(p => { if (!doneSet.has(p.id)) futureTurnPlayerIds.add(p.id); });
+    }
     const hanuPlayer = Object.values(state.players).find(p => p.character === 'hanu');
     const hanuId = hanuPlayer ? hanuPlayer.id : null;
 
@@ -901,6 +907,12 @@
       (tie.bluePool   || []).forEach(p => futurePendingIds.add(p.id));
       (tie.orangePool || []).forEach(p => futurePendingIds.add(p.id));
     });
+    // Also include players in the current slot who haven't ended their turn yet
+    const currentTurnP = state.turns[cur];
+    if (currentTurnP) {
+      const doneSet = new Set(currentTurnP.doneIds || []);
+      (currentTurnP.players || []).forEach(p => { if (!doneSet.has(p.id)) futurePendingIds.add(p.id); });
+    }
     const targets = Object.values(state.players).filter(p =>
       p.isConnected && p.team !== tigerTeam && futurePendingIds.has(p.id)
     );
@@ -1024,6 +1036,12 @@
       (tie.bluePool   || []).forEach(p => futurePendingIds.add(p.id));
       (tie.orangePool || []).forEach(p => futurePendingIds.add(p.id));
     });
+    // Also include players in the current slot who haven't ended their turn yet
+    const currentTurnT = state.turns[cur];
+    if (currentTurnT) {
+      const doneSet = new Set(currentTurnT.doneIds || []);
+      (currentTurnT.players || []).forEach(p => { if (!doneSet.has(p.id)) futurePendingIds.add(p.id); });
+    }
     const targets = Object.values(state.players).filter(p =>
       p.isConnected && p.team !== taliTeam && futurePendingIds.has(p.id)
     );
