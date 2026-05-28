@@ -49,16 +49,9 @@ io.on('connection', (socket) => {
       socket.emit('join_failed', { reason: 'no_host' });
       return;
     }
-    // ensure player name is unique within the room (case-insensitive)
-    const name = (player && player.name ? String(player.name).trim() : '');
-    const nameLower = name.toLowerCase();
-    const duplicate = Object.values(room.players).some(p => ((p && p.name) || '').toLowerCase() === nameLower);
-    if (duplicate) {
-      socket.emit('join_failed', { reason: 'name_not_unique' });
-      return;
-    }
     // If this player ID already exists (reconnect), rebind socketId and notify host
     const existing = room.players[player.id];
+    const name = (player && player.name ? String(player.name).trim() : '');
     if (existing) {
       existing.socketId = socket.id;
       existing.name = name;
@@ -70,16 +63,25 @@ io.on('connection', (socket) => {
       // notify host that a player rejoined
       io.to(room.hostSocketId).emit('player_rejoined', player);
       console.log(`Player ${player.id} (${name}) rejoined room ${code}`);
-    } else {
-      // register player (store socketId and name)
-      room.players[player.id] = { socketId: socket.id, name };
-      socket.join(code);
-      socket._roomCode = code;
-      socket._playerId = player.id;
-      // notify host of the new player
-      io.to(room.hostSocketId).emit('player_joined', player);
-      console.log(`Player ${player.id} (${name}) joined room ${code}`);
+      return;
     }
+
+    // ensure player name is unique within the room (case-insensitive)
+    const nameLower = name.toLowerCase();
+    const duplicate = Object.values(room.players).some(p => ((p && p.name) || '').toLowerCase() === nameLower);
+    if (duplicate) {
+      socket.emit('join_failed', { reason: 'name_not_unique' });
+      return;
+    }
+
+    // register player (store socketId and name)
+    room.players[player.id] = { socketId: socket.id, name };
+    socket.join(code);
+    socket._roomCode = code;
+    socket._playerId = player.id;
+    // notify host of the new player
+    io.to(room.hostSocketId).emit('player_joined', player);
+    console.log(`Player ${player.id} (${name}) joined room ${code}`);
   });
 
   socket.on('host_event', ({ code, msg, targetPlayerId }) => {
