@@ -1671,8 +1671,10 @@
         break;
 
       case 'session_closed':
+        // Host unexpectedly disconnected — preserve reconnect data so player can rejoin
+        try { saveReconnectData(); } catch (_) {}
         toast('Host closed the session.');
-        cleanup();
+        cleanup({ keepReconnect: true });
         showLanding();
         break;
     }
@@ -1793,10 +1795,11 @@
     socket.on('host_event', msg => handlePlayerMsg(msg));
     // Server may emit a top-level `session_closed` when the host disconnects.
     socket.on('session_closed', () => {
-      // Host intentionally closed (or server notified) — cancel fallback timer and return
+      // Host unexpectedly disconnected — preserve reconnect data so player can rejoin
       try { if (pendingReturnTimer) { clearTimeout(pendingReturnTimer); pendingReturnTimer = null; } } catch (_) {}
+      try { saveReconnectData(); } catch (_) {}
       toast('Host closed the session.');
-      cleanup();
+      cleanup({ keepReconnect: true });
       showLanding();
     });
     socket.on('join_failed', (data) => {
@@ -1853,7 +1856,6 @@
     gameMode    = null;
     sessionCode = myId = myName = myTeam = '';
     myCharacter = '';
-    clearReconnectData();
     updateSelectedCharDisplay();
     offlinePlayers     = [];
     offlineInitIdx     = 0;
