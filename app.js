@@ -1816,13 +1816,13 @@
       $('statusBadge').className   = 'badge badge-disconnected';
       toast('Connection to host lost.');
       // If we don't reconnect within a short window, assume host is gone and return to landing
-      try {
-        if (pendingReturnTimer) clearTimeout(pendingReturnTimer);
-      } catch (_) {}
+      try { if (pendingReturnTimer) clearTimeout(pendingReturnTimer); } catch (_) {}
       pendingReturnTimer = setTimeout(() => {
         if (!socket || !socket.connected) {
+          // Preserve reconnect info so the user can use the reconnect button on the landing page
+          try { saveReconnectData(); } catch (_) {}
           toast('Host disconnected. Returning to main menu.');
-          cleanup();
+          cleanup({ keepReconnect: true });
           showLanding();
         }
       }, 2500);
@@ -1837,7 +1837,7 @@
     }, 10000);
   }
 
-  function cleanup() {
+  function cleanup(opts = {}) {
     try {
       if (socket && socket.connected) {
         if (gameMode === 'host') socket.emit('host_close', { code: sessionCode });
@@ -1845,6 +1845,8 @@
       }
     } catch (_) {}
     try { if (pendingReturnTimer) { clearTimeout(pendingReturnTimer); pendingReturnTimer = null; } } catch (_) {}
+    // Only clear reconnect data when not explicitly preserving it
+    if (!opts.keepReconnect) clearReconnectData();
     socket = null;
     hostConn    = null;
     playerConns = {};
