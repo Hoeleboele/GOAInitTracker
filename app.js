@@ -1787,6 +1787,12 @@
     });
 
     socket.on('host_event', msg => handlePlayerMsg(msg));
+    // Server may emit a top-level `session_closed` when the host disconnects.
+    socket.on('session_closed', () => {
+      toast('Host closed the session.');
+      cleanup();
+      showLanding();
+    });
     socket.on('join_failed', (data) => {
       clearTimeout(joinTimeout);
       const reason = data && data.reason;
