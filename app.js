@@ -6,6 +6,7 @@
   let peer        = null;
   let hostConn    = null;   // player → host
   let playerConns = {};     // host: { peerId: DataConnection }
+  let socket      = null;   // Socket.IO client
 
   let sessionCode = '';
   let myId        = '';
@@ -1432,17 +1433,19 @@
 
   // ── Messaging ───────────────────────────────────────────────────────────
   function broadcast(msg) {
-    Object.values(playerConns).forEach(conn => {
-      if (conn.open) conn.send(msg);
-    });
+    if (gameMode === 'host' || gameMode === 'offline') {
+      if (socket && socket.connected) socket.emit('host_event', { code: sessionCode, msg });
+    } else if (socket && socket.connected) {
+      socket.emit('player_event', { code: sessionCode, msg });
+    }
   }
 
   // Unified: host handles locally, player sends over wire
   function sendToHost(msg) {
     if (gameMode === 'host' || gameMode === 'offline') {
       handleHostMsg(msg);
-    } else if (hostConn && hostConn.open) {
-      hostConn.send(msg);
+    } else if (socket && socket.connected) {
+      socket.emit('player_event', { code: sessionCode, msg });
     }
   }
 
@@ -1629,26 +1632,22 @@
   }
 
   // ── PeerJS ──────────────────────────────────────────────────────────────
+  // PeerJS-specific connection helper removed for Socket.IO; left as a noop.
   function setupPlayerConn(conn) {
-    conn.on('data',  msg => handleHostMsg(msg));
-    conn.on('close', ()  => {
-      // Find the player by their PeerJS peer id and mark disconnected
-      const found = Object.values(state.players).find(p => p.peerId === conn.peer);
-      if (found) {
-        state.players[found.id] = { ...state.players[found.id], isConnected: false };
-        broadcast({ type: 'state_sync', payload: serializeState() });
-        render();
-      }
-    });
+    // No-op: Socket.IO handles player sockets on the server and forwards events
   }
 
   function tryHost(code) {
-    sessionCode = code;
-    if (peer) { try { peer.destroy(); } catch (_) {} }
-    peer = new Peer(code);
+    sessionCode = (code || '').toUpperCase();
+    if (socket) { try { socket.disconnect(); } catch (_) {} }
+    socket = io();
 
-    peer.on('open', id => {
-      sessionCode = id.toUpperCase();
+    socket.on('connect', () => {
+      socket.emit('host_create', { code: sessionCode });
+    });
+
+    socket.on('host_created', (data) => {
+      sessionCode = (data.code || sessionCode).toUpperCase();
       gameMode = 'host';
       myId     = genId();
       myName   = ($('nameInput').value || 'Host').trim();
@@ -1657,7 +1656,7 @@
         phase: 'lobby',
         players: {
           [myId]: {
-            id: myId, peerId: id,
+            id: myId, socketId: socket.id,
             name: myName, team: myTeam, character: myCharacter,
             submissionStatus: 'not-submitted',
             isConnected: true,
@@ -1673,81 +1672,60 @@
       setStatus('');
     });
 
-    peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); });
+    socket.on('host_create_failed', () => {
+      // try another code
+      tryHost(genCode());
+    });
 
-    peer.on('error', err => {
-      if (err.type === 'unavailable-id') {
-        tryHost(genCode());
-      } else {
-        setStatus('Error: ' + (err.message || err.type), true);
-        gameMode = null;
+    socket.on('player_joined', p => handleHostMsg({ type: 'player_joined', payload: p }));
+    socket.on('player_event', msg => handleHostMsg(msg));
+    socket.on('player_disconnected', d => {
+      if (d && d.id && state.players[d.id]) {
+        state.players[d.id] = { ...state.players[d.id], isConnected: false };
+        broadcast({ type: 'state_sync', payload: serializeState() });
+        render();
       }
     });
 
-    peer.on('connection', conn => {
-      playerConns[conn.peer] = conn;
-      setupPlayerConn(conn);
-    });
+    socket.on('disconnect', () => { /* socket.io will auto-reconnect by default */ });
+    socket.on('error', err => { setStatus('Error: ' + (err && err.message ? err.message : err), true); gameMode = null; });
   }
 
   function joinGame(code) {
     setStatus('Connecting…');
     gameMode = 'player';
-    if (peer) { try { peer.destroy(); } catch (_) {} }
-    peer = new Peer();
+    if (socket) { try { socket.disconnect(); } catch (_) {} }
+    socket = io();
 
-    peer.on('open', () => {
-      hostConn = peer.connect(code);
-
-      hostConn.on('open', () => {
-        clearTimeout(joinTimeout);
-        myId   = genId();
-        myName = ($('nameInput').value || 'Player').trim();
-        sessionCode = code;
-
-        state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {} };
-        showApp();
-        render();
-        setStatus('');
-
-        // Announce self to host
-        hostConn.send({
-          type: 'player_joined',
-          payload: {
-            id: myId, peerId: peer.id,
-            name: myName, team: myTeam, character: myCharacter,
-            submissionStatus: 'not-submitted',
-            isConnected: true,
-          },
-        });
-        saveReconnectData();
-      });
-
-      hostConn.on('data',  msg => handlePlayerMsg(msg));
-
-      hostConn.on('error', () => {
-        clearTimeout(joinTimeout);
-        setStatus('Could not connect — check the code and try again.', true);
-        gameMode = null;
-      });
-
-      hostConn.on('close', () => {
-        $('statusBadge').textContent  = 'disconnected';
-        $('statusBadge').className    = 'badge badge-disconnected';
-        toast('Connection to host lost.');
-      });
-    });
-
-    peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); });
-
-    peer.on('error', err => {
+    socket.on('connect', () => {
       clearTimeout(joinTimeout);
-      setStatus('Network error: ' + (err.message || err.type), true);
-      gameMode = null;
+      myId   = genId();
+      myName = ($('nameInput').value || 'Player').trim();
+      sessionCode = code.toUpperCase();
+
+      state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {} };
+      showApp();
+      render();
+      setStatus('');
+
+      socket.emit('player_join', { code: sessionCode, player: {
+        id: myId, name: myName, team: myTeam, character: myCharacter,
+        submissionStatus: 'not-submitted', isConnected: true
+      } });
+      saveReconnectData();
     });
+
+    socket.on('host_event', msg => handlePlayerMsg(msg));
+    socket.on('join_failed', () => { clearTimeout(joinTimeout); setStatus('Could not connect — check the code and try again.', true); gameMode = null; });
+    socket.on('disconnect', () => {
+      $('statusBadge').textContent = 'disconnected';
+      $('statusBadge').className   = 'badge badge-disconnected';
+      toast('Connection to host lost.');
+    });
+    socket.on('error', err => { clearTimeout(joinTimeout); setStatus('Network error: ' + (err && err.message ? err.message : err), true); gameMode = null; });
 
     const joinTimeout = setTimeout(() => {
-      if (!hostConn || !hostConn.open) {
+      if (!socket || !socket.connected) {
         setStatus('Connection timed out — check the code and try again.', true);
         gameMode = null;
       }
@@ -1755,7 +1733,13 @@
   }
 
   function cleanup() {
-    if (peer) { try { peer.destroy(); } catch (_) {} peer = null; }
+    try {
+      if (socket && socket.connected) {
+        if (gameMode === 'host') socket.emit('host_close', { code: sessionCode });
+        socket.disconnect();
+      }
+    } catch (_) {}
+    socket = null;
     hostConn    = null;
     playerConns = {};
     gameMode    = null;
