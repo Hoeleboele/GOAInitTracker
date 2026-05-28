@@ -1909,6 +1909,20 @@
   // Show reconnect button if a previous session is saved
   updateReconnectButton();
 
+  // Persist last entered player name across visits
+  const LAST_NAME_KEY = 'goa_last_player_name';
+  (function initLastName() {
+    const el = $('nameInput');
+    if (!el) return;
+    try {
+      const saved = (localStorage.getItem(LAST_NAME_KEY) || '').trim();
+      if (saved) el.value = saved;
+    } catch (_) {}
+    el.addEventListener('input', () => {
+      try { localStorage.setItem(LAST_NAME_KEY, (el.value || '').trim()); } catch (_) {}
+    });
+  })();
+
   $('btnPlayOffline').addEventListener('click', () => {
     gameMode           = 'offline';
     myId               = genId();
