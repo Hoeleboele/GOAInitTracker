@@ -1999,8 +1999,13 @@
     if (gameMode === 'host') {
       if (!confirm('Close the session? All players will be disconnected.')) return;
       broadcast({ type: 'session_closed', payload: null });
+      cleanup();
+      showLanding();
+      return;
     }
-    cleanup();
+    // Player/visitor leaving — preserve reconnect info so they can rejoin later
+    try { saveReconnectData(); } catch (_) {}
+    cleanup({ keepReconnect: true });
     showLanding();
   });
 
