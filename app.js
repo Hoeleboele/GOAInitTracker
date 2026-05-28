@@ -136,11 +136,12 @@
     myCharacter = data.character || '';
     myId        = data.myId      || '';
 
+    // The server now uses Socket.IO (not PeerJS). Reuse Socket.IO flow for reconnects.
     if (data.role === 'host') {
       setStatus('Reconnecting session…');
       gameMode = 'host';
 
-      // Restore game state if saved; mark all other players as disconnected
+      // Restore saved game state (if any) and mark other players disconnected
       if (data.savedState) {
         state = {
           phase:             data.savedState.phase            || 'lobby',
@@ -153,97 +154,25 @@
           reverseInitiative: data.savedState.reverseInitiative || false,
         };
         usedAbilitiesThisTurn = new Set(data.savedState.usedAbilities || []);
-        // Mark everyone except host as disconnected — they'll reconnect shortly
         Object.keys(state.players).forEach(id => {
           if (id !== myId) state.players[id] = { ...state.players[id], isConnected: false };
         });
       }
 
-      if (peer) { try { peer.destroy(); } catch (_) {} }
-      peer = new Peer(data.code);
-
-      peer.on('open', id => {
-        sessionCode = id.toUpperCase();
-        saveReconnectData();
-        showApp();
-        render();
-        setStatus('');
-        toast('Session restored — waiting for players to reconnect.');
-      });
-
-      peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); });
-
-      peer.on('error', err => {
-        setStatus('Reconnect failed: ' + (err.message || err.type), true);
-        gameMode = null;
-      });
-
-      peer.on('connection', conn => {
-        playerConns[conn.peer] = conn;
-        setupPlayerConn(conn);
-      });
+      // Use Socket.IO host flow and reuse saved session code / IDs
+      try { if (socket && socket.connected) socket.disconnect(); } catch (_) {}
+      // tryHost will detect restore mode by seeing existing state and myId
+      tryHost(data.code, { restore: true });
+      // showApp/render will be driven from tryHost's 'host_created' handler
 
     } else {
-      // Player reconnecting
+      // Player reconnecting via Socket.IO
       setStatus('Reconnecting to session…');
       gameMode = 'player';
 
-      if (peer) { try { peer.destroy(); } catch (_) {} }
-      peer = new Peer();
-
-      peer.on('open', () => {
-        const code = data.code;
-        hostConn = peer.connect(code);
-
-        hostConn.on('open', () => {
-          clearTimeout(reconnectTimeout);
-          sessionCode = code;
-          state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0,
-                    initiativeToken: 'blue', mixedTies: {}, reverseInitiative: false };
-          showApp();
-          render();
-          setStatus('');
-          // Send rejoin message so host can restore our slot
-          hostConn.send({
-            type: 'player_rejoined',
-            payload: {
-              id:        myId,
-              peerId:    peer.id,
-              name:      myName,
-              team:      myTeam,
-              character: myCharacter,
-              isConnected: true,
-            },
-          });
-          saveReconnectData();
-        });
-
-        hostConn.on('data',  msg => handlePlayerMsg(msg));
-        hostConn.on('error', () => {
-          clearTimeout(reconnectTimeout);
-          setStatus('Could not reconnect — host may still be offline.', true);
-          gameMode = null;
-        });
-        hostConn.on('close', () => {
-          $('statusBadge').textContent = 'disconnected';
-          $('statusBadge').className   = 'badge badge-disconnected';
-          toast('Connection to host lost.');
-        });
-      });
-
-      peer.on('disconnected', () => { if (!peer.destroyed) peer.reconnect(); });
-      peer.on('error', err => {
-        clearTimeout(reconnectTimeout);
-        setStatus('Network error: ' + (err.message || err.type), true);
-        gameMode = null;
-      });
-
-      const reconnectTimeout = setTimeout(() => {
-        if (!hostConn || !hostConn.open) {
-          setStatus('Could not reconnect — host may still be offline.', true);
-          gameMode = null;
-        }
-      }, 10000);
+      try { if (socket && socket.connected) socket.disconnect(); } catch (_) {}
+      // joinGame will reuse `myId` when provided (opts.reuseId)
+      joinGame(data.code, { reuseId: true });
     }
   }
 
@@ -1638,7 +1567,7 @@
     // No-op: Socket.IO handles player sockets on the server and forwards events
   }
 
-  function tryHost(code) {
+  function tryHost(code, opts = {}) {
     sessionCode = (code || '').toUpperCase();
     if (socket) { try { socket.disconnect(); } catch (_) {} }
     socket = io(SERVER_URL);
@@ -1650,27 +1579,46 @@
     socket.on('host_created', (data) => {
       sessionCode = (data.code || sessionCode).toUpperCase();
       gameMode = 'host';
-      myId     = genId();
-      myName   = ($('nameInput').value || 'Host').trim();
+      // If restoring, prefer existing myId/myName/state set by caller
+      if (opts.restore) {
+        myId   = myId || genId();
+        myName = myName || ($('nameInput').value || 'Host').trim();
+        state = state || { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {} };
+        state.players = state.players || {};
+        state.players[myId] = {
+          id: myId, socketId: socket.id,
+          name: myName, team: myTeam, character: myCharacter,
+          submissionStatus: state.players[myId] ? state.players[myId].submissionStatus : 'not-submitted',
+          isConnected: true,
+        };
+        saveReconnectData();
+        showApp();
+        render();
+        setStatus('');
+        toast('Session restored — waiting for players to reconnect.');
+      } else {
+        myId     = genId();
+        myName   = ($('nameInput').value || 'Host').trim();
 
-      state = {
-        phase: 'lobby',
-        players: {
-          [myId]: {
-            id: myId, socketId: socket.id,
-            name: myName, team: myTeam, character: myCharacter,
-            submissionStatus: 'not-submitted',
-            isConnected: true,
+        state = {
+          phase: 'lobby',
+          players: {
+            [myId]: {
+              id: myId, socketId: socket.id,
+              name: myName, team: myTeam, character: myCharacter,
+              submissionStatus: 'not-submitted',
+              isConnected: true,
+            },
           },
-        },
-        turns: [], currentTurnIndex: 0,
-        initiativeToken: 'blue',
-        mixedTies: {},
-      };
-      saveReconnectData();
-      showApp();
-      render();
-      setStatus('');
+          turns: [], currentTurnIndex: 0,
+          initiativeToken: 'blue',
+          mixedTies: {},
+        };
+        saveReconnectData();
+        showApp();
+        render();
+        setStatus('');
+      }
     });
 
     socket.on('host_create_failed', () => {
@@ -1692,7 +1640,7 @@
     socket.on('error', err => { setStatus('Error: ' + (err && err.message ? err.message : err), true); gameMode = null; });
   }
 
-  function joinGame(code) {
+  function joinGame(code, opts = {}) {
     setStatus('Connecting…');
     gameMode = 'player';
     if (socket) { try { socket.disconnect(); } catch (_) {} }
@@ -1700,8 +1648,13 @@
 
     socket.on('connect', () => {
       clearTimeout(joinTimeout);
-      myId   = genId();
-      myName = ($('nameInput').value || 'Player').trim();
+      // Reuse existing myId/myName when reconnecting
+      if (opts.reuseId && myId) {
+        // keep myId/myName as-is
+      } else {
+        myId   = genId();
+        myName = ($('nameInput').value || 'Player').trim();
+      }
       sessionCode = code.toUpperCase();
 
       state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {} };
