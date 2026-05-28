@@ -81,6 +81,17 @@
   // ── Reconnect helpers ────────────────────────────────────────────────────
   const RECONNECT_KEY     = 'goa_reconnect';
   const RECONNECT_MAX_AGE = 4 * 60 * 60 * 1000; // 4 hours
+  // How long a disconnected player still blocks the round (ms)
+  const DISCONNECT_GRACE_MS = 5 * 60 * 1000; // 5 minutes
+  let disconnectTimer = null;
+
+  function formatMs(ms) {
+    if (ms <= 0) return '0:00';
+    const totalSec = Math.ceil(ms / 1000);
+    const min = Math.floor(totalSec / 60);
+    const sec = totalSec % 60;
+    return `${min}:${String(sec).padStart(2, '0')}`;
+  }
 
   function saveReconnectData(savedState) {
     try {
@@ -382,10 +393,21 @@
         : p.submissionStatus === 'locked'    ? 'pstatus-locked'
         : p.submissionStatus === 'submitted' ? 'pstatus-submitted'
         :                                      'pstatus-waiting';
-      const statusText = disc ? 'Disconnected'
-        : p.submissionStatus === 'locked'    ? 'Locked ✓'
-        : p.submissionStatus === 'submitted' ? 'Entered…'
-        :                                      'Waiting…';
+      let statusText = '';
+      if (disc) {
+        let prefix = '';
+        if (p.disconnectedAt && gameMode === 'host') {
+          const remaining = DISCONNECT_GRACE_MS - (Date.now() - p.disconnectedAt);
+          if (remaining > 0) prefix = `(${formatMs(remaining)}) `;
+        }
+        statusText = `${prefix}Disconnected`;
+      } else if (p.submissionStatus === 'locked') {
+        statusText = 'Locked ✓';
+      } else if (p.submissionStatus === 'submitted') {
+        statusText = 'Entered…';
+      } else {
+        statusText = 'Waiting…';
+      }
       const teamDot = p.team ? `<span class="team-dot ${p.team}"></span>` : '';
       const charTag = p.character ? `<span class="char-badge">· ${charLabel(p.character)}</span>` : '';
       return `
@@ -397,6 +419,15 @@
           ${canKill && !isMe ? `<button class="btn btn-sm btn-ghost btn-kill-player" data-id="${p.id}" title="Remove from this round">✖</button>` : ''}
         </div>`;
     }).join('');
+
+    // Manage a periodic re-render while any disconnected players remain within the grace window
+    const now = Date.now();
+    const needsTimer = Object.values(state.players).some(pp => pp.disconnectedAt && (now - pp.disconnectedAt) < DISCONNECT_GRACE_MS);
+    if (needsTimer && !disconnectTimer) {
+      disconnectTimer = setInterval(() => { try { render(); } catch (_) {} }, 1000);
+    } else if (!needsTimer && disconnectTimer) {
+      clearInterval(disconnectTimer); disconnectTimer = null;
+    }
 
     // Wire kill buttons for host/offline host
     if (canKill) {
@@ -1219,8 +1250,11 @@
       state.players[playerId] = { ...state.players[playerId],
         initiative, submissionStatus: 'locked' };
     }
-    const connected = Object.values(state.players).filter(p => p.isConnected);
-    const allLocked = connected.length > 0 && connected.every(p => p.submissionStatus === 'locked');
+    const now = Date.now();
+    const blocking = Object.values(state.players).filter(p =>
+      p.isConnected || (p.disconnectedAt && (now - p.disconnectedAt) < DISCONNECT_GRACE_MS)
+    );
+    const allLocked = blocking.length > 0 && blocking.every(p => p.submissionStatus === 'locked');
     if (allLocked) {
       revealTurns();
     } else {
@@ -1230,11 +1264,15 @@
   }
 
   function revealTurns() {
-    const connected = Object.values(state.players).filter(p => p.isConnected);
+    const now = Date.now();
+    // Consider connected players and recently-disconnected players within the grace window
+    const considered = Object.values(state.players).filter(p =>
+      p.isConnected || (p.disconnectedAt && (now - p.disconnectedAt) < DISCONNECT_GRACE_MS)
+    );
 
     // Group players by initiative value
     const byVal = {};
-    connected.forEach(p => {
+    considered.forEach(p => {
       const v = p.initiative || 0;
       if (!byVal[v]) byVal[v] = [];
       byVal[v].push(p);
@@ -1439,6 +1477,7 @@
             ...state.players[p.id],
             peerId:      p.peerId,
             isConnected: true,
+            disconnectedAt: undefined,
           };
         } else {
           // Unknown ID — treat as a new player
@@ -1670,10 +1709,12 @@
     });
 
     socket.on('player_joined', p => handleHostMsg({ type: 'player_joined', payload: p }));
+    socket.on('player_rejoined', p => handleHostMsg({ type: 'player_rejoined', payload: p }));
     socket.on('player_event', msg => handleHostMsg(msg));
     socket.on('player_disconnected', d => {
       if (d && d.id && state.players[d.id]) {
-        state.players[d.id] = { ...state.players[d.id], isConnected: false };
+        const ts = d.timestamp || Date.now();
+        state.players[d.id] = { ...state.players[d.id], isConnected: false, disconnectedAt: ts };
         broadcast({ type: 'state_sync', payload: serializeState() });
         render();
       }
@@ -1763,6 +1804,7 @@
     state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {}, reverseInitiative: false };
     resetInitPad();
     applyCharacterTheme();
+    if (disconnectTimer) { clearInterval(disconnectTimer); disconnectTimer = null; }
   }
 
   // ── Landing wiring ───────────────────────────────────────────────────────

@@ -57,14 +57,29 @@ io.on('connection', (socket) => {
       socket.emit('join_failed', { reason: 'name_not_unique' });
       return;
     }
-    // register player (store socketId and name)
-    room.players[player.id] = { socketId: socket.id, name };
-    socket.join(code);
-    socket._roomCode = code;
-    socket._playerId = player.id;
-    // notify host of the new player
-    io.to(room.hostSocketId).emit('player_joined', player);
-    console.log(`Player ${player.id} (${name}) joined room ${code}`);
+    // If this player ID already exists (reconnect), rebind socketId and notify host
+    const existing = room.players[player.id];
+    if (existing) {
+      existing.socketId = socket.id;
+      existing.name = name;
+      existing.lastDisconnectedAt = undefined;
+      room.players[player.id] = existing;
+      socket.join(code);
+      socket._roomCode = code;
+      socket._playerId = player.id;
+      // notify host that a player rejoined
+      io.to(room.hostSocketId).emit('player_rejoined', player);
+      console.log(`Player ${player.id} (${name}) rejoined room ${code}`);
+    } else {
+      // register player (store socketId and name)
+      room.players[player.id] = { socketId: socket.id, name };
+      socket.join(code);
+      socket._roomCode = code;
+      socket._playerId = player.id;
+      // notify host of the new player
+      io.to(room.hostSocketId).emit('player_joined', player);
+      console.log(`Player ${player.id} (${name}) joined room ${code}`);
+    }
   });
 
   socket.on('host_event', ({ code, msg, targetPlayerId }) => {
@@ -111,9 +126,14 @@ io.on('connection', (socket) => {
         delete rooms[code];
         console.log(`Host disconnected, closed room ${code}`);
       } else if (playerId) {
-        // player disconnected — remove from mapping and notify host
-        delete room.players[playerId];
-        if (room.hostSocketId) io.to(room.hostSocketId).emit('player_disconnected', { id: playerId });
+        // player disconnected — keep their slot but clear socketId and timestamp
+        const entry = room.players[playerId];
+        if (entry) {
+          entry.socketId = null;
+          entry.lastDisconnectedAt = Date.now();
+          room.players[playerId] = entry;
+        }
+        if (room.hostSocketId) io.to(room.hostSocketId).emit('player_disconnected', { id: playerId, timestamp: Date.now() });
         console.log(`Player ${playerId} disconnected from room ${code}`);
       }
     }
