@@ -814,6 +814,39 @@
       if (!active.doneIds.includes(targetId)) active.doneIds.push(targetId);
     }
 
+    // If the active slot is a mixed-tie, update its pools/players immediately
+    if (active && active.mixedTieSlot) {
+      const tie = state.mixedTies && state.mixedTies[active.initiative];
+      if (tie) {
+        tie.bluePool   = (tie.bluePool || []).filter(p => p.id !== targetId);
+        tie.orangePool = (tie.orangePool || []).filter(p => p.id !== targetId);
+
+        const curPoolKey = `${active.teamTurn}Pool`;
+        const otherTeam = active.teamTurn === 'blue' ? 'orange' : 'blue';
+        const otherPoolKey = `${otherTeam}Pool`;
+
+        const curPool   = tie[curPoolKey] || [];
+        const otherPool = tie[otherPoolKey] || [];
+
+        if (curPool.length > 0) {
+          active.players = curPool.map(p => ({ id: p.id, name: p.name, team: p.team }));
+        } else if (otherPool.length > 0) {
+          // Switch the active team for this mixed slot to the other team
+          active.teamTurn = otherTeam;
+          active.players = otherPool.map(p => ({ id: p.id, name: p.name, team: p.team }));
+        } else {
+          // Both pools empty: remove tie and advance the turn immediately
+          delete state.mixedTies[active.initiative];
+          // Ensure the current slot won't block advancement
+          if (!active.doneIds) active.doneIds = [];
+          // Advance turn to clean up the empty mixed slot
+          advanceTurn();
+          toast(`${esc(target.name)} removed from this round.`);
+          return;
+        }
+      }
+    }
+
     toast(`${esc(target.name)} removed from this round.`);
     // Broadcast updated state to clients
     broadcast({ type: 'state_sync', payload: serializeState() });
