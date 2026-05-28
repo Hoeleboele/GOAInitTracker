@@ -7,6 +7,7 @@
   let hostConn    = null;   // player → host
   let playerConns = {};     // host: { peerId: DataConnection }
   let socket      = null;   // Socket.IO client
+  const SERVER_URL = 'https://goainittracker.onrender.com';
 
   let sessionCode = '';
   let myId        = '';
@@ -1640,7 +1641,7 @@
   function tryHost(code) {
     sessionCode = (code || '').toUpperCase();
     if (socket) { try { socket.disconnect(); } catch (_) {} }
-    socket = io();
+    socket = io(SERVER_URL);
 
     socket.on('connect', () => {
       socket.emit('host_create', { code: sessionCode });
@@ -1695,7 +1696,7 @@
     setStatus('Connecting…');
     gameMode = 'player';
     if (socket) { try { socket.disconnect(); } catch (_) {} }
-    socket = io();
+    socket = io(SERVER_URL);
 
     socket.on('connect', () => {
       clearTimeout(joinTimeout);
