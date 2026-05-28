@@ -1,10 +1,21 @@
 const express = require('express');
 const http = require('http');
+const cors = require('cors');
 const { Server } = require('socket.io');
 
 const app = express();
+
+// allow CORS from the GitHub Pages frontend
+app.use(cors({ origin: 'https://hoeleboele.github.io', credentials: true }));
+
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: 'https://hoeleboele.github.io',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+});
 
 const PORT = process.env.PORT || 3000;
 
