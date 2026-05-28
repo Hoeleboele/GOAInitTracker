@@ -84,6 +84,8 @@
   // How long a disconnected player still blocks the round (ms)
   const DISCONNECT_GRACE_MS = 5 * 60 * 1000; // 5 minutes
   let disconnectTimer = null;
+  // If we lose connection to the server/host, return player to landing after this delay (ms)
+  let pendingReturnTimer = null;
 
   function formatMs(ms) {
     if (ms <= 0) return '0:00';
@@ -1764,6 +1766,8 @@
     socket = io(SERVER_URL);
 
     socket.on('connect', () => {
+      // If we reconnected after a network hiccup, cancel the pending return-to-landing
+      try { if (pendingReturnTimer) { clearTimeout(pendingReturnTimer); pendingReturnTimer = null; } } catch (_) {}
       clearTimeout(joinTimeout);
       // Reuse existing myId/myName when reconnecting
       if (opts.reuseId && myId) {
@@ -1789,6 +1793,8 @@
     socket.on('host_event', msg => handlePlayerMsg(msg));
     // Server may emit a top-level `session_closed` when the host disconnects.
     socket.on('session_closed', () => {
+      // Host intentionally closed (or server notified) — cancel fallback timer and return
+      try { if (pendingReturnTimer) { clearTimeout(pendingReturnTimer); pendingReturnTimer = null; } } catch (_) {}
       toast('Host closed the session.');
       cleanup();
       showLanding();
@@ -1809,6 +1815,17 @@
       $('statusBadge').textContent = 'disconnected';
       $('statusBadge').className   = 'badge badge-disconnected';
       toast('Connection to host lost.');
+      // If we don't reconnect within a short window, assume host is gone and return to landing
+      try {
+        if (pendingReturnTimer) clearTimeout(pendingReturnTimer);
+      } catch (_) {}
+      pendingReturnTimer = setTimeout(() => {
+        if (!socket || !socket.connected) {
+          toast('Host disconnected. Returning to main menu.');
+          cleanup();
+          showLanding();
+        }
+      }, 2500);
     });
     socket.on('error', err => { clearTimeout(joinTimeout); setStatus('Network error: ' + (err && err.message ? err.message : err), true); gameMode = null; });
 
@@ -1827,6 +1844,7 @@
         socket.disconnect();
       }
     } catch (_) {}
+    try { if (pendingReturnTimer) { clearTimeout(pendingReturnTimer); pendingReturnTimer = null; } } catch (_) {}
     socket = null;
     hostConn    = null;
     playerConns = {};
