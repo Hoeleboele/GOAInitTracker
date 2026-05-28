@@ -67,6 +67,7 @@
       <span class="game-title">Guards of Atlantis II</span>
       <div class="header-right">
         <span id="statusBadge" class="badge badge-connected">connected</span>
+        <button class="btn btn-sm btn-ghost" id="btnManagePlayers" style="margin-right:8px;">⚙ Manage</button>
         <button class="btn btn-sm btn-ghost" id="btnLeave">Leave</button>
       </div>
     </header>
@@ -215,6 +216,20 @@
   </div>
 
   <div id="toast"></div>
+
+  <!-- Host manage players panel -->
+  <div id="hostManagePanel" class="overlay" style="display:none;">
+    <div class="overlay-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <strong>Manage Players</strong>
+        <button class="btn btn-ghost btn-sm" id="btnCloseManage">✖</button>
+      </div>
+      <div id="hostManageList" style="max-height:60vh;overflow:auto;"></div>
+      <div style="margin-top:12px;text-align:right;">
+        <button class="btn btn-sm" id="btnCloseManage2">Close</button>
+      </div>
+    </div>
+  </div>
 
   <script src="app.js"></script>
 </body>

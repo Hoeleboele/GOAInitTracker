@@ -374,6 +374,7 @@
       el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No players yet…</div>';
       return;
     }
+    const canKill = (gameMode === 'host' || gameMode === 'offline') && state.phase === 'turns';
     el.innerHTML = players.map(p => {
       const isMe = p.id === myId;
       const disc = !p.isConnected;
@@ -393,8 +394,26 @@
             ${teamDot}${esc(p.name)}${charTag}${isMe ? '<span class="me-tag">(you)</span>' : ''}
           </span>
           <span class="pstatus ${statusClass}">${statusText}</span>
+          ${canKill && !isMe ? `<button class="btn btn-sm btn-ghost btn-kill-player" data-id="${p.id}" title="Remove from this round">✖</button>` : ''}
         </div>`;
     }).join('');
+
+    // Wire kill buttons for host/offline host
+    if (canKill) {
+      el.querySelectorAll('.btn-kill-player').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const id = btn.dataset.id;
+          const name = (state.players[id] && state.players[id].name) || 'Player';
+          if (!confirm(`Remove ${name} from this round?`)) return;
+          if (gameMode === 'host' || gameMode === 'offline') {
+            killPlayerThisRound(id);
+          } else {
+            // send request to host (shouldn't reach here for non-hosts)
+            sendToHost({ type: 'kill_player', payload: { targetId: id } });
+          }
+        });
+      });
+    }
   }
 
   // ── Turn notification (sound + vibration) ──────────────────────────────
@@ -744,6 +763,30 @@
         }
       }
     });
+  }
+
+  // Remove a player from the remainder of this round's turn order.
+  function killPlayerThisRound(targetId) {
+    const target = state.players[targetId];
+    if (!target) return;
+    // Mark as removed for UI purposes
+    state.players[targetId] = { ...(state.players[targetId] || {}), removedThisRound: true };
+
+    // Remove from upcoming turns and mixed ties
+    purgePlayerFromUpcoming(targetId);
+
+    // If currently active slot includes them, mark them done so they won't block advancement
+    const cur = state.currentTurnIndex;
+    const active = state.turns[cur];
+    if (active && (active.players || []).some(p => p.id === targetId)) {
+      if (!active.doneIds) active.doneIds = [];
+      if (!active.doneIds.includes(targetId)) active.doneIds.push(targetId);
+    }
+
+    toast(`${esc(target.name)} removed from this round.`);
+    // Broadcast updated state to clients
+    broadcast({ type: 'state_sync', payload: serializeState() });
+    render();
   }
 
   // Inserts a player at newInit in the future turn order.
@@ -1670,7 +1713,18 @@
     });
 
     socket.on('host_event', msg => handlePlayerMsg(msg));
-    socket.on('join_failed', () => { clearTimeout(joinTimeout); setStatus('Could not connect — check the code and try again.', true); gameMode = null; });
+    socket.on('join_failed', (data) => {
+      clearTimeout(joinTimeout);
+      const reason = data && data.reason;
+      if (reason === 'no_host') {
+        setStatus('Could not connect — no host for that code.', true);
+      } else if (reason === 'name_not_unique') {
+        setStatus('Name not unique in this room — choose another name.', true);
+      } else {
+        setStatus('Could not connect — check the code and try again.', true);
+      }
+      gameMode = null;
+    });
     socket.on('disconnect', () => {
       $('statusBadge').textContent = 'disconnected';
       $('statusBadge').className   = 'badge badge-disconnected';
@@ -1833,6 +1887,16 @@
     showLanding();
   });
 
+  // Host manage players panel
+  if ($('btnManagePlayers')) {
+    $('btnManagePlayers').addEventListener('click', () => {
+      $('hostManagePanel').style.display = 'block';
+      renderPlayers('hostManageList', Object.values(state.players));
+    });
+  }
+  if ($('btnCloseManage')) $('btnCloseManage').addEventListener('click', () => { $('hostManagePanel').style.display = 'none'; });
+  if ($('btnCloseManage2')) $('btnCloseManage2').addEventListener('click', () => { $('hostManagePanel').style.display = 'none'; });
+
   // ── Team & token selection ────────────────────────────────────────────
   $('btnTeamBlue').addEventListener('click', () => {
     myTeam = 'blue';
@@ -1858,6 +1922,24 @@
   $('chkHostTurns').addEventListener('change', e => {
     hostManagesTurns = e.target.checked;
   });
+
+  // Allow the host (and offline host) to flip the initiative token
+  // by clicking the token banner at the top of the page.
+  const tokenBannerEl = $('tokenBanner');
+  if (tokenBannerEl) {
+    tokenBannerEl.addEventListener('click', () => {
+      if (gameMode === 'host' || gameMode === 'offline') {
+        state.initiativeToken = state.initiativeToken === 'blue' ? 'orange' : 'blue';
+        toast(state.initiativeToken === 'blue' ? '💎 Initiative token: Blue' : '🔥 Initiative token: Orange');
+        if (gameMode === 'host') {
+          broadcast({ type: 'state_sync', payload: serializeState() });
+        }
+        render();
+      } else {
+        toast('Only the host can flip the initiative token.');
+      }
+    });
+  }
 
   // ── Character selection ───────────────────────────────────────────────
   function updateSelectedCharDisplay() {

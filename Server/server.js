@@ -49,14 +49,22 @@ io.on('connection', (socket) => {
       socket.emit('join_failed', { reason: 'no_host' });
       return;
     }
-    // register player
-    room.players[player.id] = socket.id;
+    // ensure player name is unique within the room (case-insensitive)
+    const name = (player && player.name ? String(player.name).trim() : '');
+    const nameLower = name.toLowerCase();
+    const duplicate = Object.values(room.players).some(p => ((p && p.name) || '').toLowerCase() === nameLower);
+    if (duplicate) {
+      socket.emit('join_failed', { reason: 'name_not_unique' });
+      return;
+    }
+    // register player (store socketId and name)
+    room.players[player.id] = { socketId: socket.id, name };
     socket.join(code);
     socket._roomCode = code;
     socket._playerId = player.id;
     // notify host of the new player
     io.to(room.hostSocketId).emit('player_joined', player);
-    console.log(`Player ${player.id} joined room ${code}`);
+    console.log(`Player ${player.id} (${name}) joined room ${code}`);
   });
 
   socket.on('host_event', ({ code, msg, targetPlayerId }) => {
@@ -64,7 +72,8 @@ io.on('connection', (socket) => {
     const room = rooms[code];
     if (!room) return;
     if (targetPlayerId) {
-      const targetSocket = room.players[targetPlayerId];
+      const target = room.players[targetPlayerId];
+      const targetSocket = target && target.socketId;
       if (targetSocket) io.to(targetSocket).emit('host_event', msg);
     } else {
       // broadcast to players in room (exclude host)
