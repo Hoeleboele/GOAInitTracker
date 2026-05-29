@@ -132,7 +132,7 @@ GoA.$('btnCopyCode').addEventListener('click', () => {
 
 // ── Game play ──────────────────────────────────────────────────────────────
 GoA.$('btnStartGame').addEventListener('click', () => {
-  GoA.sendAction('start_game', { initiativeToken: GoA.tokenChoice });
+  GoA.sendAction('start_game', { initiativeToken: GoA.tokenChoice, hostCanEndTurn: GoA.hostEndTurnChoice || false });
 });
 
 GoA.$('btnLeave').addEventListener('click', () => {
@@ -178,6 +178,18 @@ GoA.$('btnTokenOrange').addEventListener('click', () => {
   GoA.tokenChoice = 'orange';
   GoA.$('btnTokenOrange').classList.add('selected');
   GoA.$('btnTokenBlue').classList.remove('selected');
+});
+
+GoA.$('btnHostEndTurnOff').addEventListener('click', () => {
+  GoA.hostEndTurnChoice = false;
+  GoA.$('btnHostEndTurnOff').classList.add('selected');
+  GoA.$('btnHostEndTurnOn').classList.remove('selected');
+});
+
+GoA.$('btnHostEndTurnOn').addEventListener('click', () => {
+  GoA.hostEndTurnChoice = true;
+  GoA.$('btnHostEndTurnOn').classList.add('selected');
+  GoA.$('btnHostEndTurnOff').classList.remove('selected');
 });
 
 // Any player (or offline) can flip the initiative token by clicking the token banner
@@ -294,7 +306,19 @@ GoA.$('btnEndTurn').addEventListener('click', () => {
     GoA.endTurnOffline();
     return;
   }
-  GoA.sendAction('end_turn', { playerId: GoA.myId });
+  var isHost = GoA.state.hostPlayerId === GoA.myId;
+  var active = GoA.state.turns[GoA.state.currentTurnIndex];
+  var isInActiveSlot = active && (active.players || []).some(p => p.id === GoA.myId);
+  var hostActingForOthers = isHost && GoA.state.hostCanEndTurn && !isInActiveSlot && active;
+  
+  var playerId = GoA.myId;
+  if (hostActingForOthers) {
+    var nextPlayer = (active.players || []).find(p => !(active.doneIds || []).includes(p.id));
+    if (nextPlayer) {
+      playerId = nextPlayer.id;
+    }
+  }
+  GoA.sendAction('end_turn', { playerId: playerId });
 });
 
 GoA.$('btnNewRound').addEventListener('click', () => {

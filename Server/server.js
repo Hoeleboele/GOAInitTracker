@@ -33,6 +33,7 @@ function makeGameState() {
     currentTurnIndex: 0,
     initiativeToken: 'blue',
     hostPlayerId: null,
+    hostCanEndTurn: false,
     mixedTies: {},
     reverseInitiative: false,
     usedAbilities: [],
@@ -494,6 +495,7 @@ io.on('connection', (socket) => {
         if (socket._playerId !== gs.hostPlayerId) break;
         gs.phase = 'initiative';
         gs.initiativeToken = (payload && payload.initiativeToken) || 'blue';
+        gs.hostCanEndTurn = !!(payload && payload.hostCanEndTurn);
         gs.reverseInitiative = false;
         gs.usedAbilities = [];
         Object.keys(gs.players).forEach(id => {

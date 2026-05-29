@@ -22,6 +22,7 @@ GoA.handleServerMsg = function(gs) {
   GoA.state.currentTurnIndex = gs.currentTurnIndex || 0;
   GoA.state.initiativeToken  = gs.initiativeToken || GoA.state.initiativeToken;
   GoA.state.hostPlayerId     = gs.hostPlayerId || null;
+  GoA.state.hostCanEndTurn   = !!(gs.hostCanEndTurn);
   GoA.state.mixedTies        = gs.mixedTies || {};
   GoA.state.reverseInitiative = gs.reverseInitiative || false;
   GoA.usedAbilitiesThisTurn  = new Set(gs.usedAbilities || []);
@@ -58,7 +59,7 @@ GoA.createRoom = function() {
   GoA.socket.on('room_created', (data) => {
     GoA.sessionCode = (data.code || '').toUpperCase();
     GoA.state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0,
-      initiativeToken: 'blue', hostPlayerId: GoA.myId, mixedTies: {}, reverseInitiative: false };
+      initiativeToken: 'blue', hostPlayerId: GoA.myId, hostCanEndTurn: false, mixedTies: {}, reverseInitiative: false };
     GoA.saveReconnectData();
     GoA.showApp();
     GoA.render();
@@ -96,7 +97,7 @@ GoA.joinGame = function(code, opts = {}) {
     }
     GoA.sessionCode = code.toUpperCase();
     GoA.state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0,
-      initiativeToken: 'blue', mixedTies: {}, reverseInitiative: false };
+      initiativeToken: 'blue', hostCanEndTurn: false, mixedTies: {}, reverseInitiative: false };
     GoA.showApp();
     GoA.render();
     GoA.setStatus('');
@@ -193,7 +194,7 @@ GoA.cleanup = function(opts = {}) {
   GoA.offlineInitIdx = 0;
   GoA.offlineTokenChoice = 'blue';
   GoA.tokenChoice = 'blue';
-  GoA.state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', hostPlayerId: null, mixedTies: {}, reverseInitiative: false };
+  GoA.state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', hostPlayerId: null, hostCanEndTurn: false, mixedTies: {}, reverseInitiative: false };
   GoA.resetInitPad();
   GoA.applyCharacterTheme();
   if (GoA.disconnectTimer) { clearInterval(GoA.disconnectTimer); GoA.disconnectTimer = null; }

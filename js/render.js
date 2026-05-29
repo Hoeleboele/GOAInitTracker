@@ -39,6 +39,7 @@ GoA.render = function() {
         const others = players.filter(p => p.id !== GoA.myId && p.isConnected);
         GoA.$('btnStartGame').style.display = isHost ? '' : 'none';
         GoA.$('btnStartGame').disabled = others.length === 0;
+        GoA.$('hostEndTurnSection').style.display = isHost ? '' : 'none';
         GoA.$('startHint').textContent = others.length === 0
           ? 'Waiting for players to join…'
           : `${others.length} player${others.length !== 1 ? 's' : ''} ready — start when ready!`;
@@ -242,30 +243,48 @@ GoA.renderTurnList = function(containerId) {
     const active = GoA.state.turns[GoA.state.currentTurnIndex];
     // Show End Turn only if offline (manager mode), the host, or the active player(s)
     const isHost = GoA.gameMode === 'offline' || GoA.state.hostPlayerId === GoA.myId;
+    const isInActiveSlot = active && (active.players || []).some(p => p.id === GoA.myId);
+    const hostActingForOthers = isHost && GoA.state.hostCanEndTurn && !isInActiveSlot && active && GoA.gameMode !== 'offline';
+    
     let isMyTurn;
     if (!active) {
       isMyTurn = false;
     } else if (GoA.gameMode === 'offline') {
       isMyTurn = true;
     } else {
-      isMyTurn = (active.players || []).some(p => p.id === GoA.myId) || isHost;
+      isMyTurn = isInActiveSlot || (isHost && GoA.state.hostCanEndTurn);
     }
-    const iAlreadyDone = GoA.gameMode !== 'offline' && active && (active.doneIds || []).includes(GoA.myId);
+    
+    let iAlreadyDone;
+    if (hostActingForOthers) {
+      iAlreadyDone = active && (active.players || []).every(p => (active.doneIds || []).includes(p.id));
+    } else {
+      iAlreadyDone = GoA.gameMode !== 'offline' && active && (active.doneIds || []).includes(GoA.myId);
+    }
+    
     // Update End Turn button label
     const btn = GoA.$('btnEndTurn');
     if (GoA.gameMode === 'offline' && active && active.mixedTieSlot) {
       btn.textContent = `End ${active.teamTurn === 'blue' ? '💎 Blue' : '🔥 Orange'} Team's Turn`;
+    } else if (hostActingForOthers) {
+      const nextPlayer = (active.players || []).find(p => !(active.doneIds || []).includes(p.id));
+      if (nextPlayer) {
+        btn.textContent = `End ${GoA.esc(nextPlayer.name)}'s Turn`;
+      } else {
+        btn.textContent = 'End My Turn';
+      }
     } else {
       btn.textContent = GoA.gameMode === 'offline' ? 'End Turn' : 'End My Turn';
     }
+    
     GoA.$('turnActions').style.display = (isMyTurn && !iAlreadyDone) ? 'block' : 'none';
     // Notify once per turn when it first becomes this player's move (skip in offline)
-    if (GoA.gameMode !== 'offline' && isMyTurn && !iAlreadyDone && GoA.state.currentTurnIndex !== GoA.lastNotifiedTurnIndex) {
+    if (GoA.gameMode !== 'offline' && isMyTurn && !iAlreadyDone && !hostActingForOthers && GoA.state.currentTurnIndex !== GoA.lastNotifiedTurnIndex) {
       GoA.lastNotifiedTurnIndex = GoA.state.currentTurnIndex;
       GoA.notifyMyTurn();
     }
     const waitEl = GoA.$('turnWaiting');
-    if (isMyTurn && iAlreadyDone && active && !active.mixedTieSlot) {
+    if (isMyTurn && iAlreadyDone && active && !active.mixedTieSlot && !hostActingForOthers) {
       const waiting = (active.players || [])
         .filter(p => p.id !== GoA.myId && !(active.doneIds || []).includes(p.id))
         .map(p => GoA.esc(p.name));

@@ -19,6 +19,7 @@ GoA.myCharacter = '';       // character id or empty
 
 // ── Token choice for lobby ─────────────────────────────────────────────────
 GoA.tokenChoice = 'blue';    // which team starts with token (set in lobby)
+GoA.hostEndTurnChoice = false; // host can end turn for other players (set in lobby)
 
 // ── Game state ─────────────────────────────────────────────────────────────
 GoA.state = {
@@ -26,7 +27,10 @@ GoA.state = {
   players: {},                 // { [id]: Player }
   turns: [],
   currentTurnIndex: 0,
-  initiativeToken: 'blue',     // 'blue' | 'orange'  hostPlayerId: null,          // player id of the room creator (host)  mixedTies: {},               // { [initiative]: { bluePool, orangePool } }
+  initiativeToken: 'blue',     // 'blue' | 'orange'
+  hostPlayerId: null,          // player id of the room creator (host)
+  hostCanEndTurn: false,       // whether host can end turn for other players
+  mixedTies: {},               // { [initiative]: { bluePool, orangePool } }
   reverseInitiative: false,    // Emmit: sort low→high instead of high→low
 };
 
