@@ -13,14 +13,24 @@ GoA.sendAction = function(type, payload) {
 
 // ── Apply server game_state broadcast to local state ──────────────────────
 GoA.handleServerMsg = function(gs) {
+  var wasNotInitiative = GoA.state.phase !== 'initiative';
+  var nowInitiative = gs.phase === 'initiative';
+  
   GoA.state.phase            = gs.phase;
   GoA.state.players          = gs.players;
   GoA.state.turns            = gs.turns || [];
   GoA.state.currentTurnIndex = gs.currentTurnIndex || 0;
   GoA.state.initiativeToken  = gs.initiativeToken || GoA.state.initiativeToken;
+  GoA.state.hostPlayerId     = gs.hostPlayerId || null;
   GoA.state.mixedTies        = gs.mixedTies || {};
   GoA.state.reverseInitiative = gs.reverseInitiative || false;
   GoA.usedAbilitiesThisTurn  = new Set(gs.usedAbilities || []);
+  
+  // Reset initiative pad when transitioning to initiative phase
+  if (wasNotInitiative && nowInitiative) {
+    GoA.resetInitPad();
+  }
+  
   GoA.render();
 };
 
@@ -48,7 +58,7 @@ GoA.createRoom = function() {
   GoA.socket.on('room_created', (data) => {
     GoA.sessionCode = (data.code || '').toUpperCase();
     GoA.state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0,
-      initiativeToken: 'blue', mixedTies: {}, reverseInitiative: false };
+      initiativeToken: 'blue', hostPlayerId: GoA.myId, mixedTies: {}, reverseInitiative: false };
     GoA.saveReconnectData();
     GoA.showApp();
     GoA.render();
@@ -169,7 +179,7 @@ GoA._bindCommonSocketEvents = function() {
 GoA.cleanup = function(opts = {}) {
   try {
     if (GoA.socket && GoA.socket.connected) {
-      if (GoA.gameMode === 'player') GoA.socket.emit('game_action', { code: GoA.sessionCode, action: { type: 'close_room' } });
+      if (GoA.gameMode === 'player' && GoA.state.hostPlayerId === GoA.myId) GoA.socket.emit('game_action', { code: GoA.sessionCode, action: { type: 'close_room' } });
       GoA.socket.disconnect();
     }
   } catch (_) {}
@@ -184,7 +194,7 @@ GoA.cleanup = function(opts = {}) {
   GoA.offlineInitIdx = 0;
   GoA.offlineTokenChoice = 'blue';
   GoA.tokenChoice = 'blue';
-  GoA.state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', mixedTies: {}, reverseInitiative: false };
+  GoA.state = { phase: 'lobby', players: {}, turns: [], currentTurnIndex: 0, initiativeToken: 'blue', hostPlayerId: null, mixedTies: {}, reverseInitiative: false };
   GoA.resetInitPad();
   GoA.applyCharacterTheme();
   if (GoA.disconnectTimer) { clearInterval(GoA.disconnectTimer); GoA.disconnectTimer = null; }

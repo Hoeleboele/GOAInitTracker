@@ -6,7 +6,9 @@ window.GoA = window.GoA || {};
 // ── Main render dispatcher ────────────────────────────────────────────────
 GoA.render = function() {
   const players = Object.values(GoA.state.players);
+  var isHost = GoA.gameMode === 'offline' || GoA.state.hostPlayerId === GoA.myId;
   GoA.$('btnLeave').textContent = GoA.gameMode === 'offline' ? 'Quit' : 'Leave';
+  GoA.$('btnManagePlayers').style.display = isHost ? '' : 'none';
 
   // Token banner — visible whenever a game is in progress
   const tb = GoA.$('tokenBanner');
@@ -31,6 +33,7 @@ GoA.render = function() {
       GoA.renderPlayers('lobbyPlayers', players);
       {
         const others = players.filter(p => p.id !== GoA.myId && p.isConnected);
+        GoA.$('btnStartGame').style.display = isHost ? '' : 'none';
         GoA.$('btnStartGame').disabled = others.length === 0;
         GoA.$('startHint').textContent = others.length === 0
           ? 'Waiting for players to join…'
@@ -83,7 +86,8 @@ GoA.renderPlayers = function(containerId, players) {
     el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No players yet…</div>';
     return;
   }
-  const canKill = GoA.state.phase === 'turns';
+  var isHost = GoA.gameMode === 'offline' || GoA.state.hostPlayerId === GoA.myId;
+  const canKill = GoA.state.phase === 'turns' && isHost;
   el.innerHTML = players.map(p => {
     const isMe = p.id === GoA.myId;
     const disc = !p.isConnected;

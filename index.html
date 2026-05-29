@@ -125,7 +125,12 @@
         </div>
         <h2 class="phase-title" id="initiativePhaseTitle">Set Initiative</h2>
         <p id="offlineInitFor" style="display:none;text-align:center;margin:-8px 0 14px;font-size:15px;color:var(--muted);"></p>
-        <div id="initiativeDisplay" class="number-display">Enter initiative</div>
+        
+        <div class="initiative-input-wrapper">
+          <div id="initiativeDisplay" class="number-display">Enter initiative</div>
+          <input type="password" id="initiativePasswordField" class="initiative-password-field" readonly />
+          <button id="btnToggleInitiativeVis" class="btn-toggle-visibility" title="Hold to reveal numbers">👁</button>
+        </div>
 
         <div class="number-pad">
           <button class="pad-btn" data-val="7">7</button>

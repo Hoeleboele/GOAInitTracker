@@ -5,13 +5,23 @@ window.GoA = window.GoA || {};
 
 // ── Initiative pad display ─────────────────────────────────────────────────
 GoA.updatePad = function() {
-  const el = GoA.$('initiativeDisplay');
+  const displayEl = GoA.$('initiativeDisplay');
+  const pwdField = GoA.$('initiativePasswordField');
+  const toggleBtn = GoA.$('btnToggleInitiativeVis');
+  
   if (GoA.initValue) {
-    el.textContent = GoA.initValue;
-    el.classList.remove('is-placeholder');
+    // Show password field with masked input, hide number display
+    pwdField.value = GoA.initValue;
+    pwdField.style.display = 'block';
+    displayEl.style.display = 'none';
+    toggleBtn.style.display = 'block';
   } else {
-    el.textContent = 'Enter initiative';
-    el.classList.add('is-placeholder');
+    // Show placeholder display, hide password field
+    displayEl.textContent = 'Enter initiative';
+    displayEl.classList.add('is-placeholder');
+    pwdField.style.display = 'none';
+    displayEl.style.display = 'block';
+    toggleBtn.style.display = 'none';
   }
   GoA.$('btnLock').disabled = !GoA.initValue || GoA.initLocked;
 };
@@ -20,6 +30,7 @@ GoA.updatePad = function() {
 GoA.resetInitPad = function() {
   GoA.initValue = '';
   GoA.initLocked = false;
+  GoA.initiativeShowPassword = false;
   document.querySelectorAll('.pad-btn').forEach(b => b.disabled = false);
   GoA.$('btnLock').style.display = 'block';
   GoA.$('btnEdit').style.display = 'none';

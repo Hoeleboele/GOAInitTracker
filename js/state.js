@@ -26,14 +26,14 @@ GoA.state = {
   players: {},                 // { [id]: Player }
   turns: [],
   currentTurnIndex: 0,
-  initiativeToken: 'blue',     // 'blue' | 'orange'
-  mixedTies: {},               // { [initiative]: { bluePool, orangePool } }
+  initiativeToken: 'blue',     // 'blue' | 'orange'  hostPlayerId: null,          // player id of the room creator (host)  mixedTies: {},               // { [initiative]: { bluePool, orangePool } }
   reverseInitiative: false,    // Emmit: sort low→high instead of high→low
 };
 
 // ── Initiative pad state ────────────────────────────────────────────────────
 GoA.initValue = '';
 GoA.initLocked = false;
+GoA.initiativeShowPassword = false;
 
 // ── Notification tracking ──────────────────────────────────────────────────
 GoA.lastNotifiedTurnIndex = -1;   // tracks last turn we fired the notification for

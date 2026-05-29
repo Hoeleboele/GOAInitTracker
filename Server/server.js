@@ -32,6 +32,7 @@ function makeGameState() {
     turns: [],
     currentTurnIndex: 0,
     initiativeToken: 'blue',
+    hostPlayerId: null,
     mixedTies: {},
     reverseInitiative: false,
     usedAbilities: [],
@@ -402,6 +403,7 @@ io.on('connection', (socket) => {
     if (rooms[code]) { socket.emit('room_create_failed', { reason: 'server_full' }); return; }
 
     const gs = makeGameState();
+    gs.hostPlayerId = player.id;
     gs.players[player.id] = {
       id: player.id,
       socketId: socket.id,
@@ -476,6 +478,7 @@ io.on('connection', (socket) => {
     switch (type) {
 
       case 'start_game': {
+        if (socket._playerId !== gs.hostPlayerId) break;
         gs.phase = 'initiative';
         gs.initiativeToken = (payload && payload.initiativeToken) || 'blue';
         gs.reverseInitiative = false;
@@ -540,6 +543,7 @@ io.on('connection', (socket) => {
       }
 
       case 'kill_player': {
+        if (socket._playerId !== gs.hostPlayerId) break;
         const { targetId } = payload || {};
         if (targetId && gs.players[targetId]) {
           purgePlayerFromUpcoming(gs, targetId);
@@ -550,6 +554,7 @@ io.on('connection', (socket) => {
       }
 
       case 'flip_token': {
+        if (socket._playerId !== gs.hostPlayerId) break;
         gs.initiativeToken = gs.initiativeToken === 'blue' ? 'orange' : 'blue';
         broadcastState(code);
         break;
@@ -561,9 +566,10 @@ io.on('connection', (socket) => {
       }
 
       case 'close_room': {
+        if (socket._playerId !== gs.hostPlayerId) break;
         io.in(code).emit('session_closed');
         delete rooms[code];
-        console.log(`Room ${code} closed by player`);
+        console.log(`Room ${code} closed by host ${socket._playerId}`);
         break;
       }
     }

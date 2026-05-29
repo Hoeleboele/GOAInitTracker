@@ -256,6 +256,34 @@ GoA.$('btnEdit').addEventListener('click', () => {
   GoA.render();
 });
 
+// ── Initiative password toggle (eye icon) ─────────────────────────────────
+GoA.$('btnToggleInitiativeVis').addEventListener('mousedown', () => {
+  GoA.initiativeShowPassword = true;
+  const pwdField = GoA.$('initiativePasswordField');
+  const displayEl = GoA.$('initiativeDisplay');
+  // Update display with actual value before showing
+  displayEl.textContent = GoA.initValue;
+  displayEl.classList.remove('is-placeholder');
+  pwdField.style.display = 'none';
+  displayEl.style.display = 'block';
+});
+
+GoA.$('btnToggleInitiativeVis').addEventListener('mouseup', () => {
+  GoA.initiativeShowPassword = false;
+  const pwdField = GoA.$('initiativePasswordField');
+  const displayEl = GoA.$('initiativeDisplay');
+  pwdField.style.display = 'block';
+  displayEl.style.display = 'none';
+});
+
+GoA.$('btnToggleInitiativeVis').addEventListener('mouseleave', () => {
+  GoA.initiativeShowPassword = false;
+  const pwdField = GoA.$('initiativePasswordField');
+  const displayEl = GoA.$('initiativeDisplay');
+  pwdField.style.display = 'block';
+  displayEl.style.display = 'none';
+});
+
 // ── End turn / new round ───────────────────────────────────────────────────
 GoA.$('btnEndTurn').addEventListener('click', () => {
   if (GoA.gameMode === 'offline') {
