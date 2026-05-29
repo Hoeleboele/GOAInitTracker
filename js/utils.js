@@ -52,3 +52,32 @@ GoA.setStatus = function(msg, isErr = false) {
   el.textContent = msg;
   el.className = 'status-msg' + (isErr ? ' err' : '');
 };
+
+// ── Build set of player IDs with pending turns (shared by all abilities) ──
+GoA.buildFuturePlayerIds = function(curIdx) {
+  const ids = new Set();
+  for (let i = curIdx + 1; i < GoA.state.turns.length; i++) {
+    const t = GoA.state.turns[i];
+    if (t.status !== 'completed') (t.players || []).forEach(p => ids.add(p.id));
+  }
+  Object.values(GoA.state.mixedTies).forEach(tie => {
+    (tie.bluePool || []).forEach(p => ids.add(p.id));
+    (tie.orangePool || []).forEach(p => ids.add(p.id));
+  });
+  const currentTurn = GoA.state.turns[curIdx];
+  if (currentTurn) {
+    const doneSet = new Set(currentTurn.doneIds || []);
+    (currentTurn.players || []).forEach(p => { if (!doneSet.has(p.id)) ids.add(p.id); });
+  }
+  return ids;
+};
+
+// ── Check if a character exists in a group of player IDs ────────────────────
+GoA.hasCharacterInGroup = function(idArray, charId) {
+  return idArray.some(id => GoA.state.players[id]?.character === charId);
+};
+
+// ── Convert player object to display format ────────────────────────────────
+GoA.mapToDisplayPlayer = function(p) {
+  return { id: p.id, name: p.name, team: p.team };
+};

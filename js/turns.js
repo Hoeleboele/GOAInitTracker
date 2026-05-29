@@ -69,7 +69,7 @@ GoA.revealTurns = function() {
       // Pure same-team (or unassigned): one simultaneous slot
       turns.push({
         order: order++,
-        players: group.map(p => ({ id: p.id, name: p.name, team: p.team || '' })),
+        players: group.map(GoA.mapToDisplayPlayer),
         initiative: val,
         status: 'pending',
         doneIds: [],
@@ -95,7 +95,7 @@ GoA.buildMixedSlot = function(initiative, teamTurn, order) {
   const otherHasPlayers = tie[`${otherTeam}Pool`].length > 0;
   return {
     order,
-    players: tie[`${teamTurn}Pool`].map(p => ({ id: p.id, name: p.name, team: p.team })),
+    players: tie[`${teamTurn}Pool`].map(GoA.mapToDisplayPlayer),
     initiative,
     status: 'pending',
     doneIds: [],
@@ -141,7 +141,7 @@ GoA.advanceTurn = function() {
       // Other team exhausted — remaining players go simultaneously
       nextSlot = {
         order: nextOrder,
-        players: tie[`${takenTeam}Pool`].map(p => ({ id: p.id, name: p.name, team: p.team })),
+        players: tie[`${takenTeam}Pool`].map(GoA.mapToDisplayPlayer),
         initiative,
         status: 'pending',
         doneIds: [],
@@ -201,7 +201,7 @@ GoA.purgePlayerFromUpcoming = function(targetId) {
           if (rescued.length > 0) {
             GoA.state.turns.splice(i, 0, {
               order: 0,
-              players: rescued.map(p => ({ id: p.id, name: p.name, team: p.team })),
+              players: rescued.map(GoA.mapToDisplayPlayer),
               initiative: t.initiative,
               status: 'pending',
               doneIds: [],
@@ -228,7 +228,7 @@ GoA.purgePlayerFromUpcoming = function(targetId) {
           // Convert to a plain simultaneous slot for the surviving team
           GoA.state.turns[slotIdx] = {
             order: GoA.state.turns[slotIdx].order,
-            players: remaining.map(p => ({ id: p.id, name: p.name, team: p.team })),
+            players: remaining.map(GoA.mapToDisplayPlayer),
             initiative: initNum,
             status: 'pending',
             doneIds: [],
@@ -286,7 +286,7 @@ GoA.insertPlayerAtInitiative = function(id, name, team, newInit) {
       const otherTeam = firstTeam === 'blue' ? 'orange' : 'blue';
       GoA.state.turns[mergeIdx] = {
         order: slot.order,
-        players: GoA.state.mixedTies[newInit][`${firstTeam}Pool`].map(p => ({ id: p.id, name: p.name, team: p.team })),
+        players: GoA.state.mixedTies[newInit][`${firstTeam}Pool`].map(GoA.mapToDisplayPlayer),
         initiative: newInit,
         status: 'pending',
         doneIds: [],
@@ -332,11 +332,11 @@ GoA.killPlayerThisRound = function(targetId) {
       const otherPool = tie[otherPoolKey] || [];
 
       if (curPool.length > 0) {
-        active.players = curPool.map(p => ({ id: p.id, name: p.name, team: p.team }));
+        active.players = curPool.map(GoA.mapToDisplayPlayer);
       } else if (otherPool.length > 0) {
         // Switch the active team for this mixed slot to the other team
         active.teamTurn = otherTeam;
-        active.players = otherPool.map(p => ({ id: p.id, name: p.name, team: p.team }));
+        active.players = otherPool.map(GoA.mapToDisplayPlayer);
       } else {
         // Both pools empty: remove tie and advance the turn immediately
         delete GoA.state.mixedTies[active.initiative];

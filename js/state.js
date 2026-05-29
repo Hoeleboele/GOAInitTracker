@@ -6,9 +6,6 @@ window.GoA = window.GoA || {};
 // ── Session variables ──────────────────────────────────────────────────────
 GoA.gameMode = null;      // 'player' | 'offline'
 GoA.socket = null;         // Socket.IO client connection
-GoA.peer = null;           // Legacy PeerJS reference (unused)
-GoA.hostConn = null;       // Legacy PeerJS connection to host (unused)
-GoA.playerConns = {};      // Legacy PeerJS player connections (unused)
 
 // ── Session code & identity ────────────────────────────────────────────────
 GoA.sessionCode = '';

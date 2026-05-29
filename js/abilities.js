@@ -6,26 +6,22 @@ window.GoA = window.GoA || {};
 // ── Render active ability buttons ──────────────────────────────────────────
 GoA.renderAbilities = function() {
   const isOffline = GoA.gameMode === 'offline';
-  const hasHanu = GoA.characterInGame('hanu');
-  const hasIgnatia = GoA.characterInGame('ignatia');
   const active = GoA.state.turns[GoA.state.currentTurnIndex];
-
   const activeIds = active ? (active.players || []).map(p => p.id) : [];
-  const hanuOnActive = activeIds.some(id => GoA.state.players[id] && GoA.state.players[id].character === 'hanu')
-    || (GoA.myCharacter === 'hanu' && activeIds.includes(GoA.myId));
+  
+  const hanuOnActive = GoA.hasCharacterInGroup(activeIds, 'hanu') || (GoA.myCharacter === 'hanu' && activeIds.includes(GoA.myId));
   const canHurryUp = hanuOnActive && (GoA.myCharacter === 'hanu' || isOffline);
 
-  const ignatiaOnActive = activeIds.some(id => GoA.state.players[id] && GoA.state.players[id].character === 'ignatia')
-    || (GoA.myCharacter === 'ignatia' && activeIds.includes(GoA.myId));
+  const ignatiaOnActive = GoA.hasCharacterInGroup(activeIds, 'ignatia') || (GoA.myCharacter === 'ignatia' && activeIds.includes(GoA.myId));
   const canChaos = ignatiaOnActive && (GoA.myCharacter === 'ignatia' || isOffline);
 
-  const tigerclawOnActive = activeIds.some(id => GoA.state.players[id] && GoA.state.players[id].character === 'tigerclaw');
+  const tigerclawOnActive = GoA.hasCharacterInGroup(activeIds, 'tigerclaw');
   const canPoison = tigerclawOnActive && (GoA.myCharacter === 'tigerclaw' || isOffline);
 
-  const takahideOnActive = activeIds.some(id => GoA.state.players[id] && GoA.state.players[id].character === 'takahide');
+  const takahideOnActive = GoA.hasCharacterInGroup(activeIds, 'takahide');
   const canOrder = takahideOnActive && (GoA.myCharacter === 'takahide' || isOffline);
 
-  const taliOnActive = activeIds.some(id => GoA.state.players[id] && GoA.state.players[id].character === 'tali');
+  const taliOnActive = GoA.hasCharacterInGroup(activeIds, 'tali');
   const canIceBarrier = taliOnActive && (GoA.myCharacter === 'tali' || isOffline);
 
   const panel = GoA.$('abilityPanel');
@@ -83,31 +79,13 @@ GoA.renderAbilities = function() {
 // ── Hanu ability: Hurry Up ─────────────────────────────────────────────────
 GoA.showHurryUpPanel = function() {
   GoA.$('hurryUpPanel').style.display = 'block';
-
-  // Only show players who have a pending turn AFTER the current one (or in the current
-  // mixed-tie's other-team pool), and exclude Hanu himself
   const cur = GoA.state.currentTurnIndex;
-  const futureTurnPlayerIds = new Set();
-  for (let i = cur + 1; i < GoA.state.turns.length; i++) {
-    const t = GoA.state.turns[i];
-    if (t.status !== 'completed') (t.players || []).forEach(p => futureTurnPlayerIds.add(p.id));
-  }
-  // Also include every mixed-tie pool player
-  Object.values(GoA.state.mixedTies).forEach(tie => {
-    (tie.bluePool || []).forEach(p => futureTurnPlayerIds.add(p.id));
-    (tie.orangePool || []).forEach(p => futureTurnPlayerIds.add(p.id));
-  });
-  // Also include players in the current slot who haven't ended their turn yet
-  const currentTurn = GoA.state.turns[cur];
-  if (currentTurn) {
-    const doneSet = new Set(currentTurn.doneIds || []);
-    (currentTurn.players || []).forEach(p => { if (!doneSet.has(p.id)) futureTurnPlayerIds.add(p.id); });
-  }
+  const futurePendingIds = GoA.buildFuturePlayerIds(cur);
   const hanuPlayer = Object.values(GoA.state.players).find(p => p.character === 'hanu');
   const hanuId = hanuPlayer ? hanuPlayer.id : null;
 
   const targets = Object.values(GoA.state.players).filter(p =>
-    p.isConnected && p.id !== hanuId && futureTurnPlayerIds.has(p.id)
+    p.isConnected && p.id !== hanuId && futurePendingIds.has(p.id)
   );
   if (!targets.length) {
     GoA.$('hurryUpTargets').innerHTML = '<p style="color:var(--muted);font-size:13px;margin:4px 0">No eligible players (everyone after Hanu has already gone).</p>';
@@ -153,22 +131,8 @@ GoA.showPoisonPanel = function() {
   GoA.$('poisonPanel').style.display = 'block';
   const tigerPlayer = Object.values(GoA.state.players).find(p => p.character === 'tigerclaw');
   const tigerTeam = tigerPlayer ? tigerPlayer.team : null;
-  const cur = GoA.state.currentTurnIndex;
-  const futurePendingIds = new Set();
-  for (let i = cur + 1; i < GoA.state.turns.length; i++) {
-    const t = GoA.state.turns[i];
-    if (t.status !== 'completed') (t.players || []).forEach(p => futurePendingIds.add(p.id));
-  }
-  Object.values(GoA.state.mixedTies).forEach(tie => {
-    (tie.bluePool || []).forEach(p => futurePendingIds.add(p.id));
-    (tie.orangePool || []).forEach(p => futurePendingIds.add(p.id));
-  });
-  // Also include players in the current slot who haven't ended their turn yet
-  const currentTurnP = GoA.state.turns[cur];
-  if (currentTurnP) {
-    const doneSet = new Set(currentTurnP.doneIds || []);
-    (currentTurnP.players || []).forEach(p => { if (!doneSet.has(p.id)) futurePendingIds.add(p.id); });
-  }
+  const futurePendingIds = GoA.buildFuturePlayerIds(GoA.state.currentTurnIndex);
+  
   const targets = Object.values(GoA.state.players).filter(p =>
     p.isConnected && p.team !== tigerTeam && futurePendingIds.has(p.id)
   );
@@ -226,17 +190,8 @@ GoA.showTakahidePanel = function() {
   const takahidePlayer = Object.values(GoA.state.players).find(p => p.character === 'takahide');
   const takaTeam = takahidePlayer ? takahidePlayer.team : null;
   const takaId = takahidePlayer ? takahidePlayer.id : null;
-  // Build set of players who still have a pending turn
-  const cur = GoA.state.currentTurnIndex;
-  const futurePendingIds = new Set();
-  for (let i = cur + 1; i < GoA.state.turns.length; i++) {
-    const t = GoA.state.turns[i];
-    if (t.status !== 'completed') (t.players || []).forEach(p => futurePendingIds.add(p.id));
-  }
-  Object.values(GoA.state.mixedTies).forEach(tie => {
-    (tie.bluePool || []).forEach(p => futurePendingIds.add(p.id));
-    (tie.orangePool || []).forEach(p => futurePendingIds.add(p.id));
-  });
+  const futurePendingIds = GoA.buildFuturePlayerIds(GoA.state.currentTurnIndex);
+  
   const targets = Object.values(GoA.state.players).filter(p =>
     p.isConnected && p.team === takaTeam && p.id !== takaId && futurePendingIds.has(p.id)
   );
@@ -289,23 +244,8 @@ GoA.showIceBarrierPanel = function() {
   GoA.$('taliPanel').style.display = 'block';
   const taliPlayer = Object.values(GoA.state.players).find(p => p.character === 'tali');
   const taliTeam = taliPlayer ? taliPlayer.team : null;
-  const cur = GoA.state.currentTurnIndex;
-  // Only enemy players with a pending future turn
-  const futurePendingIds = new Set();
-  for (let i = cur + 1; i < GoA.state.turns.length; i++) {
-    const t = GoA.state.turns[i];
-    if (t.status !== 'completed') (t.players || []).forEach(p => futurePendingIds.add(p.id));
-  }
-  Object.values(GoA.state.mixedTies).forEach(tie => {
-    (tie.bluePool || []).forEach(p => futurePendingIds.add(p.id));
-    (tie.orangePool || []).forEach(p => futurePendingIds.add(p.id));
-  });
-  // Also include players in the current slot who haven't ended their turn yet
-  const currentTurnT = GoA.state.turns[cur];
-  if (currentTurnT) {
-    const doneSet = new Set(currentTurnT.doneIds || []);
-    (currentTurnT.players || []).forEach(p => { if (!doneSet.has(p.id)) futurePendingIds.add(p.id); });
-  }
+  const futurePendingIds = GoA.buildFuturePlayerIds(GoA.state.currentTurnIndex);
+  
   const targets = Object.values(GoA.state.players).filter(p =>
     p.isConnected && p.team !== taliTeam && futurePendingIds.has(p.id)
   );
