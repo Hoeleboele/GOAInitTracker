@@ -4,7 +4,7 @@
 window.GoA = window.GoA || {};
 
 // ── Session variables ──────────────────────────────────────────────────────
-GoA.gameMode = null;      // 'host' | 'player' | 'offline'
+GoA.gameMode = null;      // 'player' | 'offline'
 GoA.socket = null;         // Socket.IO client connection
 GoA.peer = null;           // Legacy PeerJS reference (unused)
 GoA.hostConn = null;       // Legacy PeerJS connection to host (unused)
@@ -17,9 +17,8 @@ GoA.myName = '';
 GoA.myTeam = '';            // 'blue' | 'orange'
 GoA.myCharacter = '';       // character id or empty
 
-// ── Host settings ──────────────────────────────────────────────────────────
-GoA.hostTokenChoice = 'blue';    // which team starts with token
-GoA.hostManagesTurns = false;    // host manually ends each turn
+// ── Token choice for lobby ─────────────────────────────────────────────────
+GoA.tokenChoice = 'blue';    // which team starts with token (set in lobby)
 
 // ── Game state ─────────────────────────────────────────────────────────────
 GoA.state = {
@@ -29,7 +28,6 @@ GoA.state = {
   currentTurnIndex: 0,
   initiativeToken: 'blue',     // 'blue' | 'orange'
   mixedTies: {},               // { [initiative]: { bluePool, orangePool } }
-  hostManagesTurns: false,     // host manages turn endings on behalf of players
   reverseInitiative: false,    // Emmit: sort low→high instead of high→low
 };
 

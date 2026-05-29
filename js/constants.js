@@ -17,4 +17,4 @@ GoA.DISCONNECT_GRACE_MS = 5 * 60 * 1000; // 5 minutes
 GoA.LAST_NAME_KEY = 'goa_last_player_name';
 
 // Game view IDs
-GoA.VIEWS = ['viewOfflineSetup', 'viewLobbyHost', 'viewLobbyPlayer', 'viewInitiative', 'viewTurns', 'viewRoundComplete'];
+GoA.VIEWS = ['viewOfflineSetup', 'viewLobbyHost', 'viewInitiative', 'viewTurns', 'viewRoundComplete'];

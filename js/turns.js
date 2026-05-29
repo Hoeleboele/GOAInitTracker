@@ -27,41 +27,7 @@ GoA.resetInitPad = function() {
   GoA.updatePad();
 };
 
-// ── Start game (move to initiative phase) ──────────────────────────────────
-GoA.startGame = function() {
-  GoA.state.phase = 'initiative';
-  GoA.state.initiativeToken = GoA.hostTokenChoice;
-  GoA.state.hostManagesTurns = GoA.hostManagesTurns;
-  Object.keys(GoA.state.players).forEach(id => {
-    GoA.state.players[id] = { ...GoA.state.players[id],
-      submissionStatus: 'not-submitted', initiative: undefined };
-  });
-  GoA.resetInitPad();
-  GoA.broadcast({ type: 'game_started',
-    payload: { initiativeToken: GoA.hostTokenChoice, hostManagesTurns: GoA.hostManagesTurns } });
-  GoA.render();
-};
-
-// ── Apply locked initiative from a player ──────────────────────────────────
-GoA.applyInitiativeLocked = function(playerId, initiative) {
-  if (GoA.state.players[playerId]) {
-    GoA.state.players[playerId] = { ...GoA.state.players[playerId],
-      initiative, submissionStatus: 'locked' };
-  }
-  const now = Date.now();
-  const blocking = Object.values(GoA.state.players).filter(p =>
-    p.isConnected || (p.disconnectedAt && (now - p.disconnectedAt) < GoA.DISCONNECT_GRACE_MS)
-  );
-  const allLocked = blocking.length > 0 && blocking.every(p => p.submissionStatus === 'locked');
-  if (allLocked) {
-    GoA.revealTurns();
-  } else {
-    GoA.broadcast({ type: 'state_sync', payload: GoA.serializeState() });
-    GoA.render();
-  }
-};
-
-// ── Build and reveal turns from locked initiatives ─────────────────────────
+// ── Build and reveal turns from locked initiatives (used in offline mode) ─────────────────────────
 GoA.revealTurns = function() {
   const now = Date.now();
   // Consider connected players and recently-disconnected players within the grace window
@@ -108,10 +74,6 @@ GoA.revealTurns = function() {
   GoA.state.turns = turns;
   GoA.state.currentTurnIndex = 0;
   GoA.state.phase = 'turns';
-  GoA.broadcast({ type: 'turns_revealed',
-    payload: { turns: GoA.state.turns, currentTurnIndex: 0,
-      initiativeToken: GoA.state.initiativeToken, mixedTies: GoA.state.mixedTies,
-      reverseInitiative: GoA.state.reverseInitiative } });
   GoA.render();
 };
 
@@ -135,9 +97,6 @@ GoA.buildMixedSlot = function(initiative, teamTurn, order) {
 // ── Advance turn to the next slot ──────────────────────────────────────────
 GoA.advanceTurn = function() {
   // Close any open ability panels and reset used-ability tracking for the new turn
-  ['hurryUpPanel', 'poisonPanel', 'takahidePanel', 'taliPanel'].forEach(id => {
-    const el = GoA.$(id); if (el) el.style.display = 'none';
-  });
   GoA.usedAbilitiesThisTurn.clear();
 
   const cur = GoA.state.currentTurnIndex;
@@ -194,14 +153,10 @@ GoA.advanceTurn = function() {
   GoA.state.turns[next].status = 'active';
   GoA.state.turns[next].doneIds = [];
   GoA.state.currentTurnIndex = next;
-  GoA.broadcast({ type: 'turn_advanced',
-    payload: { turns: GoA.state.turns, currentTurnIndex: next,
-      initiativeToken: GoA.state.initiativeToken, mixedTies: GoA.state.mixedTies,
-      usedAbilities: [] } });
   GoA.render();
 };
 
-// ── Start a new round ──────────────────────────────────────────────────────
+// ── Start a new round (offline mode) ─────────────────────────────────────
 GoA.startNewRound = function() {
   const quoteEl = GoA.$('initiativeCharQuote');
   if (quoteEl) quoteEl.textContent = '';
@@ -210,38 +165,11 @@ GoA.startNewRound = function() {
   GoA.state.currentTurnIndex = 0;
   GoA.state.mixedTies = {};
   GoA.state.reverseInitiative = false;
-  if (GoA.gameMode === 'offline') {
-    GoA.offlinePlayers.forEach(p => { p.initiative = undefined; });
-    GoA.offlineInitIdx = 0;
-    GoA.resetInitPad();
-    GoA.render();
-    return;
-  }
-  Object.keys(GoA.state.players).forEach(id => {
-    GoA.state.players[id] = { ...GoA.state.players[id],
-      submissionStatus: 'not-submitted', initiative: undefined };
-  });
+  GoA.usedAbilitiesThisTurn.clear();
+  GoA.offlinePlayers.forEach(p => { p.initiative = undefined; });
+  GoA.offlineInitIdx = 0;
   GoA.resetInitPad();
-  GoA.broadcast({ type: 'new_round', payload: GoA.serializeState() });
   GoA.render();
-};
-
-// ── Serialize game state for transmission or storage ────────────────────────
-GoA.serializeState = function() {
-  const data = {
-    phase: GoA.state.phase,
-    players: GoA.state.players,
-    turns: GoA.state.turns,
-    currentTurnIndex: GoA.state.currentTurnIndex,
-    initiativeToken: GoA.state.initiativeToken,
-    mixedTies: GoA.state.mixedTies,
-    hostManagesTurns: GoA.state.hostManagesTurns,
-    reverseInitiative: GoA.state.reverseInitiative,
-    usedAbilities: [...GoA.usedAbilitiesThisTurn],
-  };
-  // Keep localStorage in sync so the host can reconnect with full state
-  if (GoA.gameMode === 'host') GoA.saveReconnectData(data);
-  return data;
 };
 
 // ── Remove player from all future turns and mixed-tie pools ─────────────────
@@ -412,8 +340,6 @@ GoA.killPlayerThisRound = function(targetId) {
   }
 
   GoA.toast(`${GoA.esc(target.name)} removed from this round.`);
-  // Broadcast updated state to clients
-  GoA.broadcast({ type: 'state_sync', payload: GoA.serializeState() });
   GoA.render();
 };
 

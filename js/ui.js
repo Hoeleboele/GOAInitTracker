@@ -104,7 +104,7 @@ GoA.applyCharacterTheme = function() {
   const title = GoA.$('initiativePhaseTitle');
   const ability = GoA.$('initiativeCharAbility');
   if (!view || !banner) return;
-  const isOnline = GoA.gameMode === 'host' || GoA.gameMode === 'player';
+  const isOnline = GoA.gameMode === 'player';
   if (!isOnline || !GoA.myCharacter) {
     banner.style.display = 'none';
     view.classList.remove('char-themed');

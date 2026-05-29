@@ -34,7 +34,7 @@
         <div id="selectedCharDisplay" class="selected-char-display" style="display:none;"></div>
         <button class="btn btn-ghost" id="btnPickChar" style="margin-top:10px;font-size:13px;">🎭 Pick a Character</button>
 
-        <button class="btn btn-primary" id="btnHost">Host Session</button>
+        <button class="btn btn-primary" id="btnHost">Create Room</button>
         <button class="btn btn-secondary" id="btnShowJoin">Join Session</button>
         <button class="btn btn-ghost" id="btnBackToMode">← Back</button>
       </div>
@@ -107,21 +107,9 @@
         </div>
 
         <div class="lobby-actions">
-          <label class="option-toggle" for="chkHostTurns">
-            <input type="checkbox" id="chkHostTurns" />
-            Host ends each turn
-          </label>
           <button class="btn btn-primary btn-large" id="btnStartGame" disabled>Start Game →</button>
           <p id="startHint" class="hint">Waiting for players to join…</p>
         </div>
-      </div>
-
-      <!-- Lobby – Player -->
-      <div id="viewLobbyPlayer" class="view" style="display:none;">
-        <div class="waiting-icon">⚓</div>
-        <h2>Waiting for host to start…</h2>
-        <p id="lobbyPlayerCode" class="session-label"></p>
-        <div id="lobbyPlayerPlayers" class="player-list"></div>
       </div>
 
       <!-- Initiative Input -->
@@ -208,7 +196,7 @@
         <div id="roundSummary" class="turns-list"></div>
         <div class="turn-actions">
           <button class="btn btn-primary btn-large" id="btnNewRound" style="display:none;">New Round →</button>
-          <p class="hint" id="newRoundHint" style="display:none;">Waiting for host to start new round…</p>
+
         </div>
       </div>
 

@@ -6,7 +6,7 @@ window.GoA = window.GoA || {};
 // ── Main render dispatcher ────────────────────────────────────────────────
 GoA.render = function() {
   const players = Object.values(GoA.state.players);
-  GoA.$('btnLeave').textContent = GoA.gameMode === 'offline' ? 'Quit' : GoA.gameMode === 'host' ? 'Close' : 'Leave';
+  GoA.$('btnLeave').textContent = GoA.gameMode === 'offline' ? 'Quit' : 'Leave';
 
   // Token banner — visible whenever a game is in progress
   const tb = GoA.$('tokenBanner');
@@ -26,19 +26,15 @@ GoA.render = function() {
       break;
 
     case 'lobby':
-      if (GoA.gameMode === 'host') {
-        GoA.show('viewLobbyHost');
-        GoA.$('lobbyCode').textContent = GoA.sessionCode;
-        GoA.renderPlayers('lobbyPlayers', players);
+      GoA.show('viewLobbyHost');
+      GoA.$('lobbyCode').textContent = GoA.sessionCode;
+      GoA.renderPlayers('lobbyPlayers', players);
+      {
         const others = players.filter(p => p.id !== GoA.myId && p.isConnected);
         GoA.$('btnStartGame').disabled = others.length === 0;
         GoA.$('startHint').textContent = others.length === 0
           ? 'Waiting for players to join…'
           : `${others.length} player${others.length !== 1 ? 's' : ''} ready — start when ready!`;
-      } else {
-        GoA.show('viewLobbyPlayer');
-        GoA.$('lobbyPlayerCode').innerHTML = `Session <strong>${GoA.esc(GoA.sessionCode)}</strong>`;
-        GoA.renderPlayers('lobbyPlayerPlayers', players);
       }
       break;
 
@@ -59,8 +55,7 @@ GoA.render = function() {
         GoA.$('offlineInitFor').style.display = 'none';
         GoA.$('initiativePlayers').style.display = '';
         GoA.renderPlayers('initiativePlayers', players);
-        const showRevTime = GoA.myCharacter === 'emmit'
-          || (GoA.gameMode === 'host' && GoA.characterInGame('emmit'));
+        const showRevTime = GoA.myCharacter === 'emmit';
         GoA.$('abilityReverseTime').style.display = showRevTime ? 'block' : 'none';
       }
       break;
@@ -76,8 +71,7 @@ GoA.render = function() {
       GoA.renderTurnList('roundSummary');
       GoA.$('abilityPanel').style.display = 'none';
       GoA.$('hurryUpPanel').style.display = 'none';
-      GoA.$('btnNewRound').style.display = (GoA.gameMode === 'host' || GoA.gameMode === 'offline') ? 'block' : 'none';
-      GoA.$('newRoundHint').style.display = (GoA.gameMode === 'host' || GoA.gameMode === 'offline') ? 'none' : 'block';
+      GoA.$('btnNewRound').style.display = 'block';
       break;
   }
 };
@@ -89,7 +83,7 @@ GoA.renderPlayers = function(containerId, players) {
     el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No players yet…</div>';
     return;
   }
-  const canKill = (GoA.gameMode === 'host' || GoA.gameMode === 'offline') && GoA.state.phase === 'turns';
+  const canKill = GoA.state.phase === 'turns';
   el.innerHTML = players.map(p => {
     const isMe = p.id === GoA.myId;
     const disc = !p.isConnected;
@@ -100,7 +94,7 @@ GoA.renderPlayers = function(containerId, players) {
     let statusText = '';
     if (disc) {
       let prefix = '';
-      if (p.disconnectedAt && GoA.gameMode === 'host') {
+      if (p.disconnectedAt) {
         const remaining = GoA.DISCONNECT_GRACE_MS - (Date.now() - p.disconnectedAt);
         if (remaining > 0) prefix = `(${GoA.formatMs(remaining)}) `;
       }
@@ -141,10 +135,10 @@ GoA.renderPlayers = function(containerId, players) {
         const id = btn.dataset.id;
         const name = (GoA.state.players[id] && GoA.state.players[id].name) || 'Player';
         if (!confirm(`Remove ${name} from this round?`)) return;
-        if (GoA.gameMode === 'host' || GoA.gameMode === 'offline') {
+        if (GoA.gameMode === 'offline') {
           GoA.killPlayerThisRound(id);
         } else {
-          GoA.sendToHost({ type: 'kill_player', payload: { targetId: id } });
+          GoA.sendAction('kill_player', { targetId: id });
         }
       });
     });
@@ -238,27 +232,26 @@ GoA.renderTurnList = function(containerId) {
 
   if (containerId === 'turnsList') {
     const active = GoA.state.turns[GoA.state.currentTurnIndex];
-    const hostManaged = GoA.state.hostManagesTurns && GoA.gameMode === 'host';
-    const isMyTurn = (GoA.gameMode === 'offline' || hostManaged)
+    // In online mode any player can end the active turn; in offline mode, always show End Turn
+    const isMyTurn = GoA.gameMode === 'offline'
       ? !!active
-      : active && (active.players || []).some(p => p.id === GoA.myId);
-    const iAlreadyDone = (GoA.gameMode !== 'offline' && !hostManaged) && active && (active.doneIds || []).includes(GoA.myId);
+      : !!active;
+    const iAlreadyDone = GoA.gameMode !== 'offline' && active && (active.doneIds || []).includes(GoA.myId);
     // Update End Turn button label
     const btn = GoA.$('btnEndTurn');
-    const selfManaged = GoA.gameMode === 'offline' || hostManaged;
-    if (selfManaged && active && active.mixedTieSlot) {
+    if (GoA.gameMode === 'offline' && active && active.mixedTieSlot) {
       btn.textContent = `End ${active.teamTurn === 'blue' ? '💎 Blue' : '🔥 Orange'} Team's Turn`;
     } else {
-      btn.textContent = selfManaged ? 'End Turn' : 'End My Turn';
+      btn.textContent = GoA.gameMode === 'offline' ? 'End Turn' : 'End My Turn';
     }
     GoA.$('turnActions').style.display = (isMyTurn && !iAlreadyDone) ? 'block' : 'none';
     // Notify once per turn when it first becomes this player's move (skip in offline)
-    if (GoA.gameMode !== 'offline' && !hostManaged && isMyTurn && !iAlreadyDone && GoA.state.currentTurnIndex !== GoA.lastNotifiedTurnIndex) {
+    if (GoA.gameMode !== 'offline' && isMyTurn && !iAlreadyDone && GoA.state.currentTurnIndex !== GoA.lastNotifiedTurnIndex) {
       GoA.lastNotifiedTurnIndex = GoA.state.currentTurnIndex;
       GoA.notifyMyTurn();
     }
     const waitEl = GoA.$('turnWaiting');
-    if (isMyTurn && iAlreadyDone && !active.mixedTieSlot) {
+    if (isMyTurn && iAlreadyDone && active && !active.mixedTieSlot) {
       const waiting = (active.players || [])
         .filter(p => p.id !== GoA.myId && !(active.doneIds || []).includes(p.id))
         .map(p => GoA.esc(p.name));

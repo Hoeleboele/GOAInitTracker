@@ -5,36 +5,28 @@ window.GoA = window.GoA || {};
 
 // ── Render active ability buttons ──────────────────────────────────────────
 GoA.renderAbilities = function() {
-  const isHost = GoA.gameMode === 'host';
   const isOffline = GoA.gameMode === 'offline';
   const hasHanu = GoA.characterInGame('hanu');
   const hasIgnatia = GoA.characterInGame('ignatia');
   const active = GoA.state.turns[GoA.state.currentTurnIndex];
 
-  // Hanu — Hurry Up: Hanu player on their active turn; host/offline when Hanu is active
   const activeIds = active ? (active.players || []).map(p => p.id) : [];
-  // Fallback: if I am Hanu and my own ID is in the active slot, treat as active
-  // even if the synced state.players character field hasn't arrived yet.
   const hanuOnActive = activeIds.some(id => GoA.state.players[id] && GoA.state.players[id].character === 'hanu')
     || (GoA.myCharacter === 'hanu' && activeIds.includes(GoA.myId));
-  const canHurryUp = hanuOnActive && (GoA.myCharacter === 'hanu' || isHost || isOffline);
+  const canHurryUp = hanuOnActive && (GoA.myCharacter === 'hanu' || isOffline);
 
-  // Ignatia — Chaos Incarnate: Ignatia player on their active turn; host/offline when Ignatia is active
   const ignatiaOnActive = activeIds.some(id => GoA.state.players[id] && GoA.state.players[id].character === 'ignatia')
     || (GoA.myCharacter === 'ignatia' && activeIds.includes(GoA.myId));
-  const canChaos = ignatiaOnActive && (GoA.myCharacter === 'ignatia' || isHost || isOffline);
+  const canChaos = ignatiaOnActive && (GoA.myCharacter === 'ignatia' || isOffline);
 
-  // Tigerclaw — Poison Token: only during Tigerclaw's own turn
   const tigerclawOnActive = activeIds.some(id => GoA.state.players[id] && GoA.state.players[id].character === 'tigerclaw');
-  const canPoison = tigerclawOnActive && (GoA.myCharacter === 'tigerclaw' || isHost || isOffline);
+  const canPoison = tigerclawOnActive && (GoA.myCharacter === 'tigerclaw' || isOffline);
 
-  // Takahide — Warlord's Order: only during Takahide's own turn
   const takahideOnActive = activeIds.some(id => GoA.state.players[id] && GoA.state.players[id].character === 'takahide');
-  const canOrder = takahideOnActive && (GoA.myCharacter === 'takahide' || isHost || isOffline);
+  const canOrder = takahideOnActive && (GoA.myCharacter === 'takahide' || isOffline);
 
-  // Tali — Ice Barrier: only during Tali's own turn
   const taliOnActive = activeIds.some(id => GoA.state.players[id] && GoA.state.players[id].character === 'tali');
-  const canIceBarrier = taliOnActive && (GoA.myCharacter === 'tali' || isHost || isOffline);
+  const canIceBarrier = taliOnActive && (GoA.myCharacter === 'tali' || isOffline);
 
   const panel = GoA.$('abilityPanel');
   if (!canHurryUp && !canChaos && !canPoison && !canOrder && !canIceBarrier) {
@@ -67,7 +59,13 @@ GoA.renderAbilities = function() {
   if (canChaos && !GoA.usedAbilitiesThisTurn.has('chaos')) {
     GoA.$('btnChaosIncarnate').addEventListener('click', () => {
       GoA.usedAbilitiesThisTurn.add('chaos');
-      GoA.sendToHost({ type: 'use_chaos_incarnate' });
+      if (GoA.gameMode === 'offline') {
+        GoA.state.initiativeToken = GoA.state.initiativeToken === 'blue' ? 'orange' : 'blue';
+        GoA.toast('\uD83C\uDF00 Chaos Incarnate! Token flipped to ' + GoA.state.initiativeToken + '.');
+        GoA.render();
+      } else {
+        GoA.sendAction('use_ability', { abilityType: 'chaos_incarnate', actorId: GoA.myId });
+      }
       GoA.renderAbilities();
     });
   }
@@ -124,7 +122,11 @@ GoA.showHurryUpPanel = function() {
       btn.addEventListener('click', () => {
         GoA.$('hurryUpPanel').style.display = 'none';
         GoA.usedAbilitiesThisTurn.add('hurryUp');
-        GoA.sendToHost({ type: 'use_hurry_up', payload: { targetId: btn.dataset.id } });
+        if (GoA.gameMode === 'offline') {
+          GoA.applyHurryUp(btn.dataset.id);
+        } else {
+          GoA.sendAction('use_ability', { abilityType: 'hurry_up', actorId: GoA.myId, targetId: btn.dataset.id });
+        }
         GoA.renderAbilities();
       })
     );
@@ -143,11 +145,6 @@ GoA.applyHurryUp = function(targetId) {
 
   GoA.usedAbilitiesThisTurn.add('hurryUp');
   GoA.toast(`⚡ ${GoA.esc(target.name)} rushes to initiative 11!`);
-  GoA.broadcast({ type: 'turn_advanced',
-    payload: { turns: GoA.state.turns, currentTurnIndex: cur,
-      initiativeToken: GoA.state.initiativeToken, mixedTies: GoA.state.mixedTies,
-      reverseInitiative: GoA.state.reverseInitiative,
-      usedAbilities: [...GoA.usedAbilitiesThisTurn] } });
   GoA.render();
 };
 
@@ -192,7 +189,11 @@ GoA.showPoisonPanel = function() {
       btn.addEventListener('click', () => {
         GoA.$('poisonPanel').style.display = 'none';
         GoA.usedAbilitiesThisTurn.add('poison');
-        GoA.sendToHost({ type: 'use_poison', payload: { targetId: btn.dataset.id, penalty: +btn.dataset.penalty } });
+        if (GoA.gameMode === 'offline') {
+          GoA.applyPoison(btn.dataset.id, +btn.dataset.penalty);
+        } else {
+          GoA.sendAction('use_ability', { abilityType: 'poison', actorId: GoA.myId, targetId: btn.dataset.id, penalty: +btn.dataset.penalty });
+        }
         GoA.renderAbilities();
       })
     );
@@ -216,7 +217,6 @@ GoA.applyPoison = function(targetId, penalty) {
   if (stillFuture) GoA.insertPlayerAtInitiative(targetId, target.name, target.team, newInit);
   GoA.usedAbilitiesThisTurn.add('poison');
   GoA.toast(`☠️ ${GoA.esc(target.name)} poisoned! -${penalty} initiative (now ${newInit})`);
-  GoA.broadcast({ type: 'state_sync', payload: GoA.serializeState() });
   GoA.render();
 };
 
@@ -261,7 +261,11 @@ GoA.showTakahidePanel = function() {
         if (!val || val < 1) { input && input.focus(); return; }
         GoA.$('takahidePanel').style.display = 'none';
         GoA.usedAbilitiesThisTurn.add('warlordOrder');
-        GoA.sendToHost({ type: 'use_warlord_order', payload: { targetId: btn.dataset.id, newInit: val } });
+        if (GoA.gameMode === 'offline') {
+          GoA.applyWarlordOrder(btn.dataset.id, val);
+        } else {
+          GoA.sendAction('use_ability', { abilityType: 'warlord_order', actorId: GoA.myId, targetId: btn.dataset.id, newInit: val });
+        }
         GoA.renderAbilities();
       });
     });
@@ -277,7 +281,6 @@ GoA.applyWarlordOrder = function(targetId, newInit) {
   GoA.insertPlayerAtInitiative(targetId, target.name, target.team, newInit);
   GoA.usedAbilitiesThisTurn.add('warlordOrder');
   GoA.toast(`⚔️ ${GoA.esc(target.name)}'s initiative changed to ${newInit}!`);
-  GoA.broadcast({ type: 'state_sync', payload: GoA.serializeState() });
   GoA.render();
 };
 
@@ -324,7 +327,11 @@ GoA.showIceBarrierPanel = function() {
       btn.addEventListener('click', () => {
         GoA.$('taliPanel').style.display = 'none';
         GoA.usedAbilitiesThisTurn.add('iceBarrier');
-        GoA.sendToHost({ type: 'use_ice_barrier', payload: { targetId: btn.dataset.id, penalty: +btn.dataset.penalty } });
+        if (GoA.gameMode === 'offline') {
+          GoA.applyIceBarrier(btn.dataset.id, +btn.dataset.penalty);
+        } else {
+          GoA.sendAction('use_ability', { abilityType: 'ice_barrier', actorId: GoA.myId, targetId: btn.dataset.id, penalty: +btn.dataset.penalty });
+        }
         GoA.renderAbilities();
       })
     );
@@ -352,6 +359,5 @@ GoA.applyIceBarrier = function(targetId, penalty) {
   if (hadFutureTurn && stillFuture) GoA.insertPlayerAtInitiative(targetId, target.name, target.team, newInit);
   GoA.usedAbilitiesThisTurn.add('iceBarrier');
   GoA.toast(`🧊 ${GoA.esc(target.name)} frozen! -${penalty} initiative (now ${newInit})`);
-  GoA.broadcast({ type: 'state_sync', payload: GoA.serializeState() });
   GoA.render();
 };

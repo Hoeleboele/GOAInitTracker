@@ -13,8 +13,8 @@ GoA.$('btnHost').addEventListener('click', () => {
   }
   if (!GoA.myTeam) { GoA.toast('Select your team (Blue or Orange) first!'); return; }
   if (!GoA.myCharacter) { GoA.toast('Pick a character first!'); return; }
-  GoA.setStatus('Creating session…');
-  GoA.tryHost(GoA.genCode());
+  GoA.setStatus('Creating room…');
+  GoA.createRoom();
 });
 
 GoA.$('btnShowJoin').addEventListener('click', () => {
@@ -132,18 +132,10 @@ GoA.$('btnCopyCode').addEventListener('click', () => {
 
 // ── Game play ──────────────────────────────────────────────────────────────
 GoA.$('btnStartGame').addEventListener('click', () => {
-  if (GoA.gameMode === 'host') GoA.startGame();
+  GoA.sendAction('start_game', { initiativeToken: GoA.tokenChoice });
 });
 
 GoA.$('btnLeave').addEventListener('click', () => {
-  if (GoA.gameMode === 'host') {
-    if (!confirm('Close the session? All players will be disconnected.')) return;
-    GoA.broadcast({ type: 'session_closed', payload: null });
-    GoA.cleanup();
-    GoA.showLanding();
-    return;
-  }
-  // Player/visitor leaving — preserve reconnect info so they can rejoin later
   try { GoA.saveReconnectData(); } catch (_) {}
   GoA.cleanup({ keepReconnect: true });
   GoA.showLanding();
@@ -173,34 +165,27 @@ GoA.$('btnTeamOrange').addEventListener('click', () => {
 });
 
 GoA.$('btnTokenBlue').addEventListener('click', () => {
-  GoA.hostTokenChoice = 'blue';
+  GoA.tokenChoice = 'blue';
   GoA.$('btnTokenBlue').classList.add('selected');
   GoA.$('btnTokenOrange').classList.remove('selected');
 });
 
 GoA.$('btnTokenOrange').addEventListener('click', () => {
-  GoA.hostTokenChoice = 'orange';
+  GoA.tokenChoice = 'orange';
   GoA.$('btnTokenOrange').classList.add('selected');
   GoA.$('btnTokenBlue').classList.remove('selected');
 });
 
-GoA.$('chkHostTurns').addEventListener('change', e => {
-  GoA.hostManagesTurns = e.target.checked;
-});
-
-// Allow the host (and offline host) to flip the initiative token by clicking the token banner
+// Any player (or offline) can flip the initiative token by clicking the token banner
 const tokenBannerEl = GoA.$('tokenBanner');
 if (tokenBannerEl) {
   tokenBannerEl.addEventListener('click', () => {
-    if (GoA.gameMode === 'host' || GoA.gameMode === 'offline') {
+    if (GoA.gameMode === 'offline') {
       GoA.state.initiativeToken = GoA.state.initiativeToken === 'blue' ? 'orange' : 'blue';
       GoA.toast(GoA.state.initiativeToken === 'blue' ? '💎 Initiative token: Blue' : '🔥 Initiative token: Orange');
-      if (GoA.gameMode === 'host') {
-        GoA.broadcast({ type: 'state_sync', payload: GoA.serializeState() });
-      }
       GoA.render();
-    } else {
-      GoA.toast('Only the host can flip the initiative token.');
+    } else if (GoA.gameMode === 'player') {
+      GoA.sendAction('flip_token', {});
     }
   });
 }
@@ -214,10 +199,6 @@ document.querySelectorAll('.pad-btn[data-val]').forEach(btn => {
     if (+next > 99) return;
     GoA.initValue = next;
     GoA.updatePad();
-    if (GoA.initValue) {
-      GoA.sendToHost({ type: 'player_initiative_updated',
-        payload: { playerId: GoA.myId, initiative: +GoA.initValue } });
-    }
   });
 });
 
@@ -259,11 +240,7 @@ GoA.$('btnLock').addEventListener('click', () => {
   GoA.$('btnEdit').style.display = 'block';
   GoA.$('lockStatus').textContent = '✓ Locked in — waiting for others';
   const reverseTime = GoA.$('abilityReverseTime').style.display !== 'none' && GoA.$('chkReverseTime').checked;
-  GoA.sendToHost({ type: 'initiative_locked',
-    payload: { playerId: GoA.myId, initiative: +GoA.initValue, reverseTime } });
-  if (GoA.gameMode === 'host') {
-    GoA.applyInitiativeLocked(GoA.myId, +GoA.initValue);
-  }
+  GoA.sendAction('lock_initiative', { playerId: GoA.myId, initiative: +GoA.initValue, reverseTime });
 });
 
 GoA.$('btnEdit').addEventListener('click', () => {
@@ -276,23 +253,24 @@ GoA.$('btnEdit').addEventListener('click', () => {
     GoA.state.players[GoA.myId] = { ...GoA.state.players[GoA.myId], submissionStatus: 'not-submitted' };
   }
   GoA.updatePad();
-  if (GoA.gameMode === 'host') {
-    GoA.broadcast({ type: 'state_sync', payload: GoA.serializeState() });
-  }
   GoA.render();
 });
 
 // ── End turn / new round ───────────────────────────────────────────────────
 GoA.$('btnEndTurn').addEventListener('click', () => {
-  if (GoA.gameMode === 'offline' || (GoA.state.hostManagesTurns && GoA.gameMode === 'host')) {
+  if (GoA.gameMode === 'offline') {
     GoA.endTurnOffline();
     return;
   }
-  GoA.sendToHost({ type: 'turn_ended', payload: { playerId: GoA.myId } });
+  GoA.sendAction('end_turn', { playerId: GoA.myId });
 });
 
 GoA.$('btnNewRound').addEventListener('click', () => {
-  if (GoA.gameMode === 'host' || GoA.gameMode === 'offline') GoA.startNewRound();
+  if (GoA.gameMode === 'offline') {
+    GoA.startNewRound();
+    return;
+  }
+  GoA.sendAction('start_new_round', {});
 });
 
 // ── Character picker buttons ───────────────────────────────────────────────
