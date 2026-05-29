@@ -39,7 +39,7 @@ function makeGameState() {
 }
 
 // Disconnect grace period — same as client constant (5 minutes)
-const DISCONNECT_GRACE_MS = 5 * 60 * 1000;
+const DISCONNECT_GRACE_MS = 10 * 60 * 1000;
 
 // rooms[code] = { gameState }
 const rooms = {};
