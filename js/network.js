@@ -179,7 +179,6 @@ GoA._bindCommonSocketEvents = function() {
 GoA.cleanup = function(opts = {}) {
   try {
     if (GoA.socket && GoA.socket.connected) {
-      if (GoA.gameMode === 'player' && GoA.state.hostPlayerId === GoA.myId) GoA.socket.emit('game_action', { code: GoA.sessionCode, action: { type: 'close_room' } });
       GoA.socket.disconnect();
     }
   } catch (_) {}

@@ -4,7 +4,7 @@ const cors = require('cors');
 const { Server } = require('socket.io');
 
 const app = express();
-const ORIGIN = 'https://hoeleboele.github.io';
+const ORIGIN = process.env.ORIGIN || 'https://hoeleboele.github.io';
 
 app.use(cors({ origin: ORIGIN, credentials: true }));
 
@@ -42,7 +42,7 @@ function makeGameState() {
 // Disconnect grace period — same as client constant (5 minutes)
 const DISCONNECT_GRACE_MS = 10 * 60 * 1000;
 
-// rooms[code] = { gameState }
+// rooms[code] = { gameState, expiryTimer }
 const rooms = {};
 
 function broadcastState(code) {
@@ -413,7 +413,7 @@ io.on('connection', (socket) => {
       submissionStatus: 'not-submitted',
       isConnected: true,
     };
-    rooms[code] = { gameState: gs };
+    rooms[code] = { gameState: gs, expiryTimer: null };
     socket.join(code);
     socket._roomCode = code;
     socket._playerId = player.id;
@@ -437,6 +437,13 @@ io.on('connection', (socket) => {
       existing.socketId = socket.id;
       existing.isConnected = true;
       existing.disconnectedAt = undefined;
+      // Cancel any pending room expiry since someone reconnected
+      const roomObj = rooms[code];
+      if (roomObj && roomObj.expiryTimer) {
+        clearTimeout(roomObj.expiryTimer);
+        roomObj.expiryTimer = null;
+        console.log(`Expiry timer cleared for room ${code} due to reconnect`);
+      }
       socket.join(code);
       socket._roomCode = code;
       socket._playerId = player.id;
@@ -463,6 +470,12 @@ io.on('connection', (socket) => {
     socket._roomCode = code;
     socket._playerId = player.id;
     socket.to(code).emit('player_joined', { name });
+    // New join cancels expiry as well
+    if (room && room.expiryTimer) {
+      clearTimeout(room.expiryTimer);
+      room.expiryTimer = null;
+      console.log(`Expiry timer cleared for room ${code} due to new join`);
+    }
     broadcastState(code);
     console.log(`Player ${player.id} (${name}) joined room ${code}`);
   });
@@ -567,6 +580,11 @@ io.on('connection', (socket) => {
 
       case 'close_room': {
         if (socket._playerId !== gs.hostPlayerId) break;
+        // Clear any expiry timer before deleting
+        if (rooms[code] && rooms[code].expiryTimer) {
+          clearTimeout(rooms[code].expiryTimer);
+          rooms[code].expiryTimer = null;
+        }
         io.in(code).emit('session_closed');
         delete rooms[code];
         console.log(`Room ${code} closed by host ${socket._playerId}`);
@@ -589,6 +607,19 @@ io.on('connection', (socket) => {
       socket.to(code).emit('player_disconnected', { id: playerId, name: player.name });
       broadcastState(code);
       console.log(`Player ${playerId} (${player.name}) disconnected from room ${code}`);
+      // If everyone is disconnected, schedule room expiry/removal
+      const anyConnected = Object.values(gs.players).some(p => p.isConnected);
+      if (!anyConnected) {
+        const roomObj = rooms[code];
+        if (roomObj && !roomObj.expiryTimer) {
+          roomObj.expiryTimer = setTimeout(() => {
+            io.in(code).emit('session_closed');
+            delete rooms[code];
+            console.log(`Room ${code} expired and was removed due to inactivity`);
+          }, DISCONNECT_GRACE_MS);
+          console.log(`Room ${code} scheduled to expire in ${DISCONNECT_GRACE_MS}ms`);
+        }
+      }
     }
   });
 });

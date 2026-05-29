@@ -16,7 +16,76 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Cache root npm
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.npm
+            node_modules
+          key: ${{ runner.os }}-node-root-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-root-
+
+      - name: Install root dependencies
+        run: npm ci
+
+
+      - name: Cache Server npm
+        uses: actions/cache@v4
+        with:
+          path: |
+            Server/node_modules
+            Server/.npm
+          key: ${{ runner.os }}-node-server-${{ hashFiles('Server/**/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-server-
+
+      - name: Install server dependencies
+        run: npm ci --prefix Server
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        id: run-tests
+        run: npx playwright test --reporter=list
+        env:
+          CI: true
+
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-failure-artifacts
+          path: |
+            playwright-report
+            test-results
+            test-results/**/attachments
+            playwright-report/**/screenshots
+            playwright-report/**/videos
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout

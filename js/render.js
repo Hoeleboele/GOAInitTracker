@@ -7,7 +7,11 @@ window.GoA = window.GoA || {};
 GoA.render = function() {
   const players = Object.values(GoA.state.players);
   var isHost = GoA.gameMode === 'offline' || GoA.state.hostPlayerId === GoA.myId;
-  GoA.$('btnLeave').textContent = GoA.gameMode === 'offline' ? 'Quit' : 'Leave';
+  if (GoA.gameMode === 'offline') {
+    GoA.$('btnLeave').textContent = 'Quit';
+  } else {
+    GoA.$('btnLeave').textContent = isHost ? 'Close Room' : 'Leave';
+  }
   GoA.$('btnManagePlayers').style.display = isHost ? '' : 'none';
 
   // Token banner — visible whenever a game is in progress
@@ -236,10 +240,16 @@ GoA.renderTurnList = function(containerId) {
 
   if (containerId === 'turnsList') {
     const active = GoA.state.turns[GoA.state.currentTurnIndex];
-    // In online mode any player can end the active turn; in offline mode, always show End Turn
-    const isMyTurn = GoA.gameMode === 'offline'
-      ? !!active
-      : !!active;
+    // Show End Turn only if offline (manager mode), the host, or the active player(s)
+    const isHost = GoA.gameMode === 'offline' || GoA.state.hostPlayerId === GoA.myId;
+    let isMyTurn;
+    if (!active) {
+      isMyTurn = false;
+    } else if (GoA.gameMode === 'offline') {
+      isMyTurn = true;
+    } else {
+      isMyTurn = (active.players || []).some(p => p.id === GoA.myId) || isHost;
+    }
     const iAlreadyDone = GoA.gameMode !== 'offline' && active && (active.doneIds || []).includes(GoA.myId);
     // Update End Turn button label
     const btn = GoA.$('btnEndTurn');

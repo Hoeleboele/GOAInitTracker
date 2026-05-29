@@ -137,6 +137,10 @@ GoA.$('btnStartGame').addEventListener('click', () => {
 
 GoA.$('btnLeave').addEventListener('click', () => {
   try { GoA.saveReconnectData(); } catch (_) {}
+  if (GoA.gameMode === 'player' && GoA.state.hostPlayerId === GoA.myId) {
+    if (!confirm('Close room and remove it for all players?')) return;
+    GoA.sendAction('close_room', {});
+  }
   GoA.cleanup({ keepReconnect: true });
   GoA.showLanding();
 });
