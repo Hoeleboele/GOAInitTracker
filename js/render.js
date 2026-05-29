@@ -39,6 +39,7 @@ GoA.render = function() {
         const others = players.filter(p => p.id !== GoA.myId && p.isConnected);
         GoA.$('btnStartGame').style.display = isHost ? '' : 'none';
         GoA.$('btnStartGame').disabled = others.length === 0;
+        GoA.$('hostTokenSection').style.display = isHost ? '' : 'none';
         GoA.$('hostEndTurnSection').style.display = isHost ? '' : 'none';
         GoA.$('startHint').textContent = others.length === 0
           ? 'Waiting for players to join…'
