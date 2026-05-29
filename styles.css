@@ -505,6 +505,14 @@ input[type=text]::placeholder { color: var(--muted); }
   box-shadow: 0 0 14px rgba(208,96,32,0.15);
 }
 
+/* Host end turn button selected state */
+#hostEndTurnSection .team-btn.selected {
+  background: rgba(200,160,40,0.12);
+  border-color: rgba(200,160,40,0.55);
+  color: var(--scroll-lt);
+  box-shadow: 0 0 14px rgba(200,160,40,0.15);
+}
+
 /* Team indicator icons */
 .team-dot {
   display: inline-block;
@@ -633,6 +641,17 @@ input[type=text]::placeholder { color: var(--muted); }
 
 .btn-toggle-visibility:active {
   opacity: 0.85;
+}
+
+/* Character theme styling for initiative input */
+#viewInitiative.char-themed .initiative-password-field {
+  color: var(--char-accent);
+  border-color: var(--char-accent);
+  text-shadow: 0 0 28px var(--char-accent-dim, rgba(68,196,236,0.4));
+}
+
+#viewInitiative.char-themed .btn-toggle-visibility {
+  color: var(--char-accent);
 }
 
 .number-pad {
