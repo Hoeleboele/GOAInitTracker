@@ -10,6 +10,7 @@ try {
   const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
   admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
   db = admin.firestore();
+  db.settings({ ignoreUndefinedProperties: true });
   console.log('Firestore connected');
 } catch (e) {
   console.warn('Firestore unavailable — running without persistence:', e.message);
