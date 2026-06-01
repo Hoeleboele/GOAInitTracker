@@ -12,7 +12,8 @@ GoA.render = function() {
   } else {
     GoA.$('btnLeave').textContent = isHost ? 'Close Room' : 'Leave';
   }
-  GoA.$('btnManagePlayers').style.display = isHost ? '' : 'none';
+  const managePlyBtn = GoA.$('btnManagePlayers');
+  if (managePlyBtn) managePlyBtn.style.display = isHost ? '' : 'none';
 
   // Token banner — visible whenever a game is in progress
   const tb = GoA.$('tokenBanner');
