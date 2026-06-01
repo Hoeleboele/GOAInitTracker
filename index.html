@@ -67,7 +67,6 @@
       <span class="game-title">Guards of Atlantis II</span>
       <div class="header-right">
         <span id="statusBadge" class="badge badge-connected">connected</span>
-        <button class="btn btn-sm btn-ghost" id="btnManagePlayers" style="margin-right:8px;">⚙ Manage</button>
         <button class="btn btn-sm btn-ghost" id="btnLeave">Leave</button>
       </div>
     </header>
@@ -174,6 +173,7 @@
       <!-- Turn Display -->
       <div id="viewTurns" class="view" style="display:none;">
         <h2 class="phase-title">Turn Order</h2>
+        <button class="btn btn-sm btn-ghost" id="btnKillPlayers" style="display:none;margin-bottom:12px;">⚠ Kill Players</button>
         <div id="turnsList" class="turns-list"></div>
         <div id="turnActions" class="turn-actions" style="display:none;">
           <button class="btn btn-primary btn-large" id="btnEndTurn">End My Turn</button>
@@ -218,16 +218,17 @@
 
   <div id="toast"></div>
 
-  <!-- Host manage players panel -->
-  <div id="hostManagePanel" class="overlay" style="display:none;">
+
+  <!-- Kill players panel -->
+  <div id="killPlayersPanel" class="overlay" style="display:none;">
     <div class="overlay-card">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-        <strong>Manage Players</strong>
-        <button class="btn btn-ghost btn-sm" id="btnCloseManage">✖</button>
+        <strong>Remove Players from Round</strong>
+        <button class="btn btn-ghost btn-sm" id="btnCloseKillPanel">✖</button>
       </div>
-      <div id="hostManageList" style="max-height:60vh;overflow:auto;"></div>
+      <div id="killPlayersList" style="max-height:60vh;overflow:auto;"></div>
       <div style="margin-top:12px;text-align:right;">
-        <button class="btn btn-sm" id="btnCloseManage2">Close</button>
+        <button class="btn btn-sm" id="btnCloseKillPanel2">Close</button>
       </div>
     </div>
   </div>

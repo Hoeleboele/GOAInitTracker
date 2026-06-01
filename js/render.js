@@ -73,6 +73,8 @@ GoA.render = function() {
       GoA.show('viewTurns');
       GoA.renderTurnList('turnsList');
       GoA.renderAbilities();
+      // Show kill button only for host in turns phase
+      GoA.$('btnKillPlayers').style.display = isHost ? '' : 'none';
       break;
 
     case 'round-complete':
@@ -340,4 +342,47 @@ GoA.renderOfflineSetup = function() {
       GoA.renderOfflineSetup();
     })
   );
+};
+
+// ── Render kill players list ───────────────────────────────────────────────
+GoA.renderKillPlayersList = function(containerId, players) {
+  const el = GoA.$(containerId);
+  if (!players.length) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:8px 0;">No players…</div>';
+    return;
+  }
+  el.innerHTML = players.map(p => {
+    const isMe = p.id === GoA.myId;
+    const disc = !p.isConnected;
+    const statusClass = disc ? 'pstatus-disconnected'
+      : p.submissionStatus === 'locked' ? 'pstatus-locked'
+        : p.submissionStatus === 'submitted' ? 'pstatus-submitted'
+          : 'pstatus-waiting';
+    const teamDot = p.team ? `<span class="team-dot ${p.team}"></span>` : '';
+    const charTag = p.character ? `<span class="char-badge">· ${GoA.charLabel(p.character)}</span>` : '';
+    return `
+      <div class="player-row">
+        <span class="player-name">
+          ${teamDot}${GoA.esc(p.name)}${charTag}${isMe ? '<span class="me-tag">(you)</span>' : ''}
+        </span>
+        ${!isMe ? `<button class="btn btn-sm btn-danger" data-id="${p.id}" title="Remove from this round">⚠ Remove</button>` : ''}
+      </div>`;
+  }).join('');
+
+  // Wire kill buttons
+  el.querySelectorAll('.btn-danger').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = btn.dataset.id;
+      const name = (GoA.state.players[id] && GoA.state.players[id].name) || 'Player';
+      if (!confirm(`Remove ${name} from this round?`)) return;
+      if (GoA.gameMode === 'offline') {
+        GoA.killPlayerThisRound(id);
+      } else {
+        GoA.sendAction('kill_player', { targetId: id });
+      }
+      // Close the panel after killing
+      GoA.$('killPlayersPanel').style.display = 'none';
+      GoA.render();
+    });
+  });
 };

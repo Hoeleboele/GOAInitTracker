@@ -145,15 +145,31 @@ GoA.$('btnLeave').addEventListener('click', () => {
   GoA.showLanding();
 });
 
-// Host manage players panel
-if (GoA.$('btnManagePlayers')) {
-  GoA.$('btnManagePlayers').addEventListener('click', () => {
-    GoA.$('hostManagePanel').style.display = 'block';
-    GoA.renderPlayers('hostManageList', Object.values(GoA.state.players));
+// Kill players panel
+if (GoA.$('btnKillPlayers')) {
+  GoA.$('btnKillPlayers').addEventListener('click', () => {
+    GoA.$('killPlayersPanel').style.display = 'block';
+    // Filter to show only players who still need to end their turn in the current turn slot
+    const activeTurn = GoA.state.turns[GoA.state.currentTurnIndex];
+    const doneIds = (activeTurn && activeTurn.doneIds) || [];
+    const turnPlayerIds = (activeTurn && activeTurn.players) ? activeTurn.players.map(p => p.id) : [];
+    
+    // Get the next player whose turn it is (currently active)
+    const nextActivePlayer = (activeTurn && activeTurn.players) 
+      ? activeTurn.players.find(p => !doneIds.includes(p.id))
+      : null;
+    
+    // Show players in current turn who haven't finished and aren't the current active player
+    const filteredPlayers = turnPlayerIds
+      .filter(id => !doneIds.includes(id) && id !== (nextActivePlayer && nextActivePlayer.id))
+      .map(id => GoA.state.players[id])
+      .filter(p => p); // Ensure player exists
+    
+    GoA.renderKillPlayersList('killPlayersList', filteredPlayers);
   });
 }
-if (GoA.$('btnCloseManage')) GoA.$('btnCloseManage').addEventListener('click', () => { GoA.$('hostManagePanel').style.display = 'none'; });
-if (GoA.$('btnCloseManage2')) GoA.$('btnCloseManage2').addEventListener('click', () => { GoA.$('hostManagePanel').style.display = 'none'; });
+if (GoA.$('btnCloseKillPanel')) GoA.$('btnCloseKillPanel').addEventListener('click', () => { GoA.$('killPlayersPanel').style.display = 'none'; });
+if (GoA.$('btnCloseKillPanel2')) GoA.$('btnCloseKillPanel2').addEventListener('click', () => { GoA.$('killPlayersPanel').style.display = 'none'; });
 
 // ── Team & token selection ─────────────────────────────────────────────────
 GoA.$('btnTeamBlue').addEventListener('click', () => {
@@ -273,7 +289,7 @@ GoA.$('btnEdit').addEventListener('click', () => {
 });
 
 // ── Initiative password toggle (eye icon) ─────────────────────────────────
-GoA.$('btnToggleInitiativeVis').addEventListener('mousedown', () => {
+GoA.$('btnToggleInitiativeVis').addEventListener('pointerdown', () => {
   GoA.initiativeShowPassword = true;
   const pwdField = GoA.$('initiativePasswordField');
   const displayEl = GoA.$('initiativeDisplay');
@@ -284,7 +300,7 @@ GoA.$('btnToggleInitiativeVis').addEventListener('mousedown', () => {
   displayEl.style.display = 'block';
 });
 
-GoA.$('btnToggleInitiativeVis').addEventListener('mouseup', () => {
+GoA.$('btnToggleInitiativeVis').addEventListener('pointerup', () => {
   GoA.initiativeShowPassword = false;
   const pwdField = GoA.$('initiativePasswordField');
   const displayEl = GoA.$('initiativeDisplay');
@@ -292,7 +308,7 @@ GoA.$('btnToggleInitiativeVis').addEventListener('mouseup', () => {
   displayEl.style.display = 'none';
 });
 
-GoA.$('btnToggleInitiativeVis').addEventListener('mouseleave', () => {
+GoA.$('btnToggleInitiativeVis').addEventListener('pointerleave', () => {
   GoA.initiativeShowPassword = false;
   const pwdField = GoA.$('initiativePasswordField');
   const displayEl = GoA.$('initiativeDisplay');
