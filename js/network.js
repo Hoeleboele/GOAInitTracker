@@ -116,12 +116,15 @@ GoA.joinGame = function(code, opts = {}) {
     const reason = data && data.reason;
     if (reason === 'not_found') {
       GoA.setStatus('Could not connect — no room with that code.', true);
+      GoA.clearReconnectData();
+      GoA.cleanup();
+      GoA.showLanding();
     } else if (reason === 'name_not_unique') {
       GoA.setStatus('Name already taken in this room — choose another name.', true);
     } else {
       GoA.setStatus('Could not connect — check the code and try again.', true);
+      GoA.gameMode = null;
     }
-    GoA.gameMode = null;
   });
 
   GoA._bindCommonSocketEvents();
