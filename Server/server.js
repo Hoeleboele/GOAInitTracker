@@ -477,7 +477,7 @@ io.on('connection', (socket) => {
     if (existing) {
       existing.socketId = socket.id;
       existing.isConnected = true;
-      existing.disconnectedAt = undefined;
+      delete existing.disconnectedAt;
       // Cancel any pending room expiry since someone reconnected
       const roomObj = rooms[code];
       if (roomObj && roomObj.expiryTimer) {
