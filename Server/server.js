@@ -2,6 +2,18 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const { Server } = require('socket.io');
+const admin = require('firebase-admin');
+
+// ── Firebase Admin Init ───────────────────────────────────────────────────
+let db = null;
+try {
+  const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+  admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+  db = admin.firestore();
+  console.log('Firestore connected');
+} catch (e) {
+  console.warn('Firestore unavailable — running without persistence:', e.message);
+}
 
 const app = express();
 const ORIGIN = process.env.ORIGIN || 'https://hoeleboele.github.io';
@@ -46,9 +58,25 @@ const DISCONNECT_GRACE_MS = 10 * 60 * 1000;
 // rooms[code] = { gameState, expiryTimer }
 const rooms = {};
 
+// ── Firestore persistence (fire-and-forget) ───────────────────────────────
+function persistRoomToFirestore(code) {
+  if (!db || !rooms[code]) return;
+  db.collection('rooms').doc(code).set({
+    gameState: rooms[code].gameState,
+    lastUpdatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  }).catch(e => console.error(`Firestore write failed for room ${code}:`, e.message));
+}
+
+function deleteRoomFromFirestore(code) {
+  if (!db) return;
+  db.collection('rooms').doc(code).delete()
+    .catch(e => console.error(`Firestore delete failed for room ${code}:`, e.message));
+}
+
 function broadcastState(code) {
   if (!rooms[code]) return;
   io.in(code).emit('game_state', rooms[code].gameState);
+  persistRoomToFirestore(code);
 }
 
 // ── Turn Logic ─────────────────────────────────────────────────────────────
@@ -415,6 +443,7 @@ io.on('connection', (socket) => {
       isConnected: true,
     };
     rooms[code] = { gameState: gs, expiryTimer: null };
+    persistRoomToFirestore(code);
     socket.join(code);
     socket._roomCode = code;
     socket._playerId = player.id;
@@ -424,8 +453,19 @@ io.on('connection', (socket) => {
   });
 
   // ── Join Room ────────────────────────────────────────────────────────────
-  socket.on('join_room', ({ code, player }) => {
+  socket.on('join_room', async ({ code, player }) => {
     code = (code || '').toUpperCase();
+    if (!rooms[code] && db) {
+      try {
+        const doc = await db.collection('rooms').doc(code).get();
+        if (doc.exists) {
+          rooms[code] = { gameState: doc.data().gameState, expiryTimer: null };
+          console.log(`Room ${code} recovered from Firestore`);
+        }
+      } catch (e) {
+        console.error(`Firestore recovery failed for room ${code}:`, e.message);
+      }
+    }
     const room = rooms[code];
     if (!room) { socket.emit('join_failed', { reason: 'not_found' }); return; }
 
@@ -589,6 +629,7 @@ io.on('connection', (socket) => {
         }
         io.in(code).emit('session_closed');
         delete rooms[code];
+        deleteRoomFromFirestore(code);
         console.log(`Room ${code} closed by host ${socket._playerId}`);
         break;
       }
@@ -617,12 +658,20 @@ io.on('connection', (socket) => {
           roomObj.expiryTimer = setTimeout(() => {
             io.in(code).emit('session_closed');
             delete rooms[code];
+            deleteRoomFromFirestore(code);
             console.log(`Room ${code} expired and was removed due to inactivity`);
           }, DISCONNECT_GRACE_MS);
           console.log(`Room ${code} scheduled to expire in ${DISCONNECT_GRACE_MS}ms`);
         }
       }
     }
+  });
+
+  // ── Keep-Alive Ping ───────────────────────────────────────────────────────
+  socket.on('ping', (data) => {
+    // Client sends periodic pings to keep the server awake during long games.
+    // This prevents Render free tier from spinning down the dyno after 15 mins idle.
+    socket.emit('pong', { timestamp: Date.now() });
   });
 });
 

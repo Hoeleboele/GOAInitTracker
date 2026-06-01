@@ -174,6 +174,25 @@ GoA._bindCommonSocketEvents = function() {
     GoA.setStatus('Network error: ' + (err && err.message ? err.message : err), true);
     GoA.gameMode = null;
   });
+
+  GoA.socket.on('pong', (data) => {
+    // Keep-alive response from server. Used to prevent Render free tier from
+    // spinning down the dyno during long games with periods of inactivity.
+  });
+
+  GoA._startKeepAlive();
+};
+
+// ── Start Keep-Alive Ping ───────────────────────────────────────────────────
+GoA._startKeepAlive = function() {
+  // Send a ping to the server every 10 seconds to prevent it from going idle
+  // on Render free tier (which spins down after ~15 minutes of no HTTP traffic)
+  if (GoA.keepAliveInterval) clearInterval(GoA.keepAliveInterval);
+  GoA.keepAliveInterval = setInterval(() => {
+    if (GoA.socket && GoA.socket.connected) {
+      GoA.socket.emit('ping', { timestamp: Date.now() });
+    }
+  }, 10000);
 };
 
 // ── Cleanup and disconnect ───────────────────────────────────────────────────
@@ -184,6 +203,7 @@ GoA.cleanup = function(opts = {}) {
     }
   } catch (_) {}
   try { if (GoA.pendingReturnTimer) { clearTimeout(GoA.pendingReturnTimer); GoA.pendingReturnTimer = null; } } catch (_) {}
+  if (GoA.keepAliveInterval) { clearInterval(GoA.keepAliveInterval); GoA.keepAliveInterval = null; }
   if (!opts.keepReconnect) GoA.clearReconnectData();
   GoA.socket = null;
   GoA.gameMode = null;

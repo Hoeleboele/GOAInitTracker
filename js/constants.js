@@ -11,7 +11,7 @@ GoA.RECONNECT_KEY = 'goa_reconnect';
 GoA.RECONNECT_MAX_AGE = 4 * 60 * 60 * 1000; // 4 hours
 
 // Disconnect grace period — how long a disconnected player still blocks the round (ms)
-GoA.DISCONNECT_GRACE_MS = 5 * 60 * 1000; // 5 minutes
+GoA.DISCONNECT_GRACE_MS = 15 * 60 * 1000; // 15 minutes
 
 // Last name storage key
 GoA.LAST_NAME_KEY = 'goa_last_player_name';
