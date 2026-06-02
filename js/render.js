@@ -75,8 +75,41 @@ GoA.render = function() {
       GoA.show('viewTurns');
       GoA.renderTurnList('turnsList');
       GoA.renderAbilities();
-      // Show kill button only for host in turns phase
-      GoA.$('btnKillPlayers').style.display = isHost ? '' : 'none';
+      // Show kill players section for host
+      if (isHost) {
+        const currentTurnIndex = GoA.state.currentTurnIndex;
+        const activeTurn = GoA.state.turns[currentTurnIndex];
+        const doneIds = (activeTurn && activeTurn.doneIds) || [];
+        
+        // Get players from current turn slot onwards who haven't finished
+        const playersStillToGo = [];
+        for (let i = currentTurnIndex; i < GoA.state.turns.length; i++) {
+          const slot = GoA.state.turns[i];
+          if (slot && slot.players) {
+            for (const slotPlayer of slot.players) {
+              const playerId = slotPlayer.id || slotPlayer;
+              // Only add if not already in list and (is current slot and not done, or is future slot)
+              if (!playersStillToGo.find(p => p.id === playerId)) {
+                if (i > currentTurnIndex || !doneIds.includes(playerId)) {
+                  const player = GoA.state.players[playerId];
+                  if (player) playersStillToGo.push(player);
+                }
+              }
+            }
+          }
+        }
+        
+        if (GoA.$('killPlayersList')) {
+          GoA.renderKillPlayersList('killPlayersList', playersStillToGo);
+        }
+        if (GoA.$('killPlayersSection')) {
+          GoA.$('killPlayersSection').style.display = playersStillToGo.length > 0 ? 'block' : 'none';
+        }
+      } else {
+        if (GoA.$('killPlayersSection')) {
+          GoA.$('killPlayersSection').style.display = 'none';
+        }
+      }
       break;
 
     case 'round-complete':
@@ -312,7 +345,9 @@ GoA.renderTurnList = function(containerId) {
       btn.textContent = GoA.gameMode === 'offline' ? 'End Turn' : 'End My Turn';
     }
     
-    GoA.$('turnActions').style.display = (isMyTurn && !iAlreadyDone) ? 'block' : 'none';
+    // Show turn actions if it's my turn, or if I'm the host (can always manage kill players)
+    const shouldShowTurnActions = (isMyTurn && !iAlreadyDone) || (isHost && active);
+    GoA.$('turnActions').style.display = shouldShowTurnActions ? 'block' : 'none';
     // Notify once per turn when it first becomes this player's move (skip in offline)
     if (GoA.gameMode !== 'offline' && isMyTurn && !iAlreadyDone && !hostActingForOthers && GoA.state.currentTurnIndex !== GoA.lastNotifiedTurnIndex) {
       GoA.lastNotifiedTurnIndex = GoA.state.currentTurnIndex;
@@ -466,7 +501,7 @@ GoA.renderKillPlayersList = function(containerId, players) {
         <span class="player-name">
           ${teamDot}${GoA.esc(p.name)}${charTag}${isMe ? '<span class="me-tag">(you)</span>' : ''}
         </span>
-        ${!isMe ? `<button class="btn btn-sm btn-danger" data-id="${p.id}" title="Remove from this round">⚠ Remove</button>` : ''}
+        <button class="btn btn-sm btn-danger" data-id="${p.id}" title="Remove from this round">⚠ Remove</button>
       </div>`;
   }).join('');
 
@@ -481,8 +516,6 @@ GoA.renderKillPlayersList = function(containerId, players) {
       } else {
         GoA.sendAction('kill_player', { targetId: id });
       }
-      // Close the panel after killing
-      GoA.$('killPlayersPanel').style.display = 'none';
       GoA.render();
     });
   });

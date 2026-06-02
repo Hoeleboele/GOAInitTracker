@@ -145,32 +145,6 @@ GoA.$('btnLeave').addEventListener('click', () => {
   GoA.showLanding();
 });
 
-// Kill players panel
-if (GoA.$('btnKillPlayers')) {
-  GoA.$('btnKillPlayers').addEventListener('click', () => {
-    GoA.$('killPlayersPanel').style.display = 'block';
-    // Filter to show only players who still need to end their turn in the current turn slot
-    const activeTurn = GoA.state.turns[GoA.state.currentTurnIndex];
-    const doneIds = (activeTurn && activeTurn.doneIds) || [];
-    const turnPlayerIds = (activeTurn && activeTurn.players) ? activeTurn.players.map(p => p.id) : [];
-    
-    // Get the next player whose turn it is (currently active)
-    const nextActivePlayer = (activeTurn && activeTurn.players) 
-      ? activeTurn.players.find(p => !doneIds.includes(p.id))
-      : null;
-    
-    // Show players in current turn who haven't finished and aren't the current active player
-    const filteredPlayers = turnPlayerIds
-      .filter(id => !doneIds.includes(id) && id !== (nextActivePlayer && nextActivePlayer.id))
-      .map(id => GoA.state.players[id])
-      .filter(p => p); // Ensure player exists
-    
-    GoA.renderKillPlayersList('killPlayersList', filteredPlayers);
-  });
-}
-if (GoA.$('btnCloseKillPanel')) GoA.$('btnCloseKillPanel').addEventListener('click', () => { GoA.$('killPlayersPanel').style.display = 'none'; });
-if (GoA.$('btnCloseKillPanel2')) GoA.$('btnCloseKillPanel2').addEventListener('click', () => { GoA.$('killPlayersPanel').style.display = 'none'; });
-
 // ── Team & token selection ─────────────────────────────────────────────────
 GoA.$('btnTeamBlue').addEventListener('click', () => {
   GoA.myTeam = 'blue';
@@ -348,6 +322,15 @@ GoA.$('btnCancelTakahide').addEventListener('click', () => {
 GoA.$('btnCancelTali').addEventListener('click', () => {
   GoA.$('taliPanel').style.display = 'none';
 });
-
+// ── Kill players menu toggle ───────────────────────────────────────────────
+if (GoA.$('btnToggleKillMenu')) {
+  GoA.$('btnToggleKillMenu').addEventListener('click', () => {
+    const menu = GoA.$('killPlayersMenu');
+    const icon = GoA.$('killMenuToggleIcon');
+    const isHidden = menu.style.display === 'none' || !menu.style.display;
+    menu.style.display = isHidden ? 'block' : 'none';
+    icon.textContent = isHidden ? '▲' : '▼';
+  });
+}
 // ── Boot ────────────────────────────────────────────────────────────────────
 GoA.showLanding();

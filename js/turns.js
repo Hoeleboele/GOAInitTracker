@@ -183,6 +183,8 @@ GoA.startNewRound = function() {
   GoA.state.mixedTies = {};
   GoA.state.reverseInitiative = false;
   GoA.usedAbilitiesThisTurn.clear();
+  // Clear removedThisRound flags for new round
+  Object.values(GoA.state.players).forEach(p => { if (p) p.removedThisRound = false; });
   GoA.offlinePlayers.forEach(p => { p.initiative = undefined; });
   GoA.offlineInitIdx = 0;
   GoA.resetInitPad();
@@ -312,15 +314,14 @@ GoA.killPlayerThisRound = function(targetId) {
   // Mark as removed for UI purposes
   GoA.state.players[targetId] = { ...(GoA.state.players[targetId] || {}), removedThisRound: true };
 
-  // Remove from upcoming turns and mixed ties
-  GoA.purgePlayerFromUpcoming(targetId);
-
   // If currently active slot includes them, mark them done so they won't block advancement
   const cur = GoA.state.currentTurnIndex;
   const active = GoA.state.turns[cur];
   if (active && (active.players || []).some(p => p.id === targetId)) {
     if (!active.doneIds) active.doneIds = [];
     if (!active.doneIds.includes(targetId)) active.doneIds.push(targetId);
+    // Remove from active slot's players list
+    active.players = (active.players || []).filter(p => p.id !== targetId);
   }
 
   // If the active slot is a mixed-tie, update its pools/players immediately
