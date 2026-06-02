@@ -413,7 +413,64 @@ input[type=text]::placeholder { color: var(--muted); }
   background: rgba(68,196,236,0.05);
 }
 
-.player-name { font-weight: 600; font-size: clamp(13px, 3.5vw, 15px); }
+/* ── Character icon column (player rows & turn rows) ── */
+.char-icon-col {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+}
+
+.char-icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 6px;
+  display: block;
+}
+
+/* Stacked icons for simultaneous turns */
+.char-icon-col--stack {
+  width: 72px;
+  height: 48px;
+  overflow: visible;
+}
+
+.char-icon-stack {
+  display: flex;
+  align-items: center;
+  height: 48px;
+}
+
+.char-icon-stacked {
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+  border-radius: 6px;
+  display: block;
+  flex-shrink: 0;
+}
+
+.char-icon-stacked ~ .char-icon-stacked,
+.char-icon-stacked ~ .icon-overflow-badge {
+  margin-left: -14px;
+}
+
+.icon-overflow-badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--panel);
+  border: 1px solid var(--line-warm);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.player-name { font-weight: 600; font-size: clamp(13px, 3.5vw, 15px); flex: 1; min-width: 0; }
 .me-tag { font-size: 11px; color: var(--crystal); font-weight: 400; margin-left: 6px; }
 
 .pstatus              { font-size: 12px; font-weight: 600; }
@@ -607,13 +664,14 @@ input[type=text]::placeholder { color: var(--muted); }
 }
 
 .initiative-password-field {
-  font-size: clamp(48px, 14vw, 64px);
+  font-size: 40px;
   font-weight: 900;
   text-align: center;
   color: var(--scroll);
-  min-height: 72px;
-  line-height: 1;
-  letter-spacing: 2px;
+  height: auto;
+  min-height: unset;
+  line-height: 1.1;
+  padding: 10px 16px;
   text-shadow: 0 0 28px rgba(200,160,40,0.45);
   white-space: nowrap;
   overflow: hidden;
@@ -622,19 +680,20 @@ input[type=text]::placeholder { color: var(--muted); }
   background: transparent;
   font-family: monospace;
   letter-spacing: 4px;
-  padding: 0 16px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .btn-toggle-visibility {
   position: absolute;
-  right: 12px;
+  right: 10px;
   background: none;
   border: none;
-  font-size: 20px;
+  font-size: 24px;
   cursor: pointer;
-  padding: 8px;
-  min-width: 44px;
-  min-height: 44px;
+  padding: 12px;
+  min-width: 48px;
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -642,6 +701,7 @@ input[type=text]::placeholder { color: var(--muted); }
   opacity: 0.7;
   transition: opacity 0.2s;
   touch-action: manipulation;
+  z-index: 10;
 }
 
 .btn-toggle-visibility:hover {
@@ -650,6 +710,11 @@ input[type=text]::placeholder { color: var(--muted); }
 
 .btn-toggle-visibility:active {
   opacity: 0.85;
+}
+
+.btn-toggle-visibility.active {
+  opacity: 1;
+  filter: drop-shadow(0 0 4px currentColor);
 }
 
 /* Character theme styling for initiative input */
@@ -699,6 +764,13 @@ input[type=text]::placeholder { color: var(--muted); }
   flex-direction: column;
   gap: 10px;
 }
+
+.lock-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.lock-btn-row #btnLock { flex: 1; }
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TURN LIST
@@ -885,6 +957,11 @@ input[type=text]::placeholder { color: var(--muted); }
   .code-display { font-size: 28px; letter-spacing: 4px; }
   .number-pad   { gap: 6px; }
   .pad-btn      { padding: 12px 6px; font-size: 18px; }
+  .char-icon-col { width: 32px; height: 32px; }
+  .char-icon-col--stack { width: 50px; height: 32px; }
+  .char-icon-stack { height: 32px; }
+  .char-icon-stacked, .icon-overflow-badge { width: 24px; height: 24px; }
+  .icon-overflow-badge { font-size: 8px; }
 }
 
 /* Mobile only — move the character banner to the bottom of the initiative screen */
@@ -894,6 +971,20 @@ input[type=text]::placeholder { color: var(--muted); }
     margin: 20px calc(-1 * clamp(12px, 4vw, 20px)) calc(-1 * clamp(14px, 4vw, 24px));
     border-radius: 0;
   }
+
+  .btn-toggle-visibility {
+    min-width: 56px;
+    min-height: 56px;
+    font-size: 28px;
+    padding: 14px;
+    right: 8px;
+  }
+
+  .char-icon-col { width: 36px; height: 36px; }
+  .char-icon-col--stack { width: 56px; height: 36px; }
+  .char-icon-stack { height: 36px; }
+  .char-icon-stacked, .icon-overflow-badge { width: 28px; height: 28px; }
+  .icon-overflow-badge { font-size: 9px; }
 }
 
 /* Tablets and up (> 600px) — landing card gets slightly more presence */
@@ -1364,13 +1455,28 @@ input[type=text]::placeholder { color: var(--muted); }
 }
 .char-banner-quote {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
   font-style: italic;
-  color: rgba(255,255,255,0.78);
+  color: rgba(255,255,255,0.85);
   text-shadow: 0 1px 8px rgba(0,0,0,0.95);
-  margin-top: 6px;
   line-height: 1.4;
+  text-align: center;
+}
+
+.char-quote-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  padding: 12px 14px;
+  background: linear-gradient(
+    to bottom,
+    rgba(19,16,13,0.65) 0%,
+    rgba(19,16,13,0.25) 100%
+  );
+  pointer-events: none;
 }
 
 /* Accent theming on the initiative view */

@@ -2,7 +2,8 @@
 // Render module — all DOM rendering functions
 
 window.GoA = window.GoA || {};
-
+// Track cycling intervals for mixed slot icons
+GoA.mixedIconCycles = {};
 // ── Main render dispatcher ────────────────────────────────────────────────
 GoA.render = function() {
   const players = Object.values(GoA.state.players);
@@ -86,6 +87,9 @@ GoA.render = function() {
       GoA.$('btnNewRound').style.display = 'block';
       break;
   }
+  
+  // Update phase tracker for next render (used to detect phase transitions)
+  GoA.previousPhase = GoA.state.phase;
 };
 
 // ── Render players list ────────────────────────────────────────────────────
@@ -121,8 +125,10 @@ GoA.renderPlayers = function(containerId, players) {
     }
     const teamDot = p.team ? `<span class="team-dot ${p.team}"></span>` : '';
     const charTag = p.character ? `<span class="char-badge">· ${GoA.charLabel(p.character)}</span>` : '';
+    const iconSrc = p.character ? GoA.charIconPath(p.character) : 'CharacterIcons/_placeholder.svg';
     return `
       <div class="player-row${isMe ? ' is-me' : ''}">
+        <div class="char-icon-col"><img class="char-icon" src="${iconSrc}" alt="" onerror="this.src='CharacterIcons/_placeholder.svg'"></div>
         <span class="player-name">
           ${teamDot}${GoA.esc(p.name)}${charTag}${isMe ? '<span class="me-tag">(you)</span>' : ''}
         </span>
@@ -195,6 +201,7 @@ GoA.renderTurnList = function(containerId) {
 
     // Resolve primary character avatar for the ghost background
     const getAvatar = id => { const c = GoA.state.players[id]; return c && c.character ? GoA.charAvatarPath(c.character) : ''; };
+    const getIcon = id => { const c = GoA.state.players[id]; return c && c.character ? GoA.charIconPath(c.character) : 'CharacterIcons/_placeholder.svg'; };
     let bgAvatar = '';
     if (isMixedSlot) {
       const tie = GoA.state.mixedTies && GoA.state.mixedTies[t.initiative];
@@ -204,6 +211,29 @@ GoA.renderTurnList = function(containerId) {
       bgAvatar = getAvatar(players[0].id);
     }
     const avatarAttr = bgAvatar ? ` style="--avatar-url: url('${bgAvatar}')"` : '';
+
+    // Build the character icon column
+    const PLACEHOLDER = 'CharacterIcons/_placeholder.svg';
+    const iconImg = (src) => `<img class="char-icon" src="${src}" alt="" onerror="this.src='${PLACEHOLDER}'">`;
+    const stackedIconImg = (src) => `<img class="char-icon char-icon-stacked" src="${src}" alt="" onerror="this.src='${PLACEHOLDER}'">`;
+    let iconColHtml;
+    if (isMixedSlot) {
+      const tie2 = GoA.state.mixedTies && GoA.state.mixedTies[t.initiative];
+      const pool2 = tie2 && tie2[`${t.teamTurn}Pool`];
+      const src = pool2 && pool2[0] ? getIcon(pool2[0].id) : PLACEHOLDER;
+      const mixedIconId = `mixed-icon-${t.initiative}-${t.teamTurn}`;
+      iconColHtml = `<div class="char-icon-col"><div id="${mixedIconId}">${iconImg(src)}</div></div>`;
+    } else if (players.length > 1) {
+      const MAX_VISIBLE = 3;
+      const toShow = players.length > MAX_VISIBLE ? players.slice(0, MAX_VISIBLE - 1) : players;
+      const overflowCount = players.length > MAX_VISIBLE ? players.length - (MAX_VISIBLE - 1) : 0;
+      let stackItems = toShow.map(p => stackedIconImg(getIcon(p.id))).join('');
+      if (overflowCount > 0) stackItems += `<span class="icon-overflow-badge">+${overflowCount}</span>`;
+      iconColHtml = `<div class="char-icon-col char-icon-col--stack"><div class="char-icon-stack">${stackItems}</div></div>`;
+    } else {
+      const src = players[0] ? getIcon(players[0].id) : PLACEHOLDER;
+      iconColHtml = `<div class="char-icon-col">${iconImg(src)}</div>`;
+    }
     let names;
     if (isMixedSlot) {
       const tie = t.status !== 'completed' && GoA.state.mixedTies && GoA.state.mixedTies[t.initiative];
@@ -234,6 +264,7 @@ GoA.renderTurnList = function(containerId) {
     return `
       <div class="turn-row${cls}${teamCls}"${avatarAttr}>
         <div class="turn-order">${t.order}</div>
+        ${iconColHtml}
         <div class="turn-info">
           <div class="turn-name">${names}</div>
           <div class="turn-initiative">Initiative ${t.initiative}${subLabel}</div>
@@ -297,7 +328,76 @@ GoA.renderTurnList = function(containerId) {
     } else {
       waitEl.style.display = 'none';
     }
+
+    // Set up cycling for mixed slot icons (2-second interval through all characters in pool)
+    GoA.setupMixedIconCycles();
   }
+};
+
+// ── Setup cycling for mixed slot icons ─────────────────────────────────────
+GoA.setupMixedIconCycles = function() {
+  console.log('[mixed-icon] setupMixedIconCycles called, clearing', Object.keys(GoA.mixedIconCycles).length, 'existing intervals');
+  
+  // Clear all existing intervals
+  Object.keys(GoA.mixedIconCycles).forEach(key => {
+    clearInterval(GoA.mixedIconCycles[key]);
+    delete GoA.mixedIconCycles[key];
+  });
+
+  // Find all mixed slot icons and set up cycling
+  const getIcon = id => { const c = GoA.state.players[id]; return c && c.character ? GoA.charIconPath(c.character) : 'CharacterIcons/_placeholder.svg'; };
+  const getAvatar = id => { const c = GoA.state.players[id]; return c && c.character ? GoA.charAvatarPath(c.character) : ''; };
+  const PLACEHOLDER = 'CharacterIcons/_placeholder.svg';
+
+  GoA.state.turns.forEach((t, turnIdx) => {
+    if (!t.mixedTieSlot) return;
+
+    const players = t.players || [];
+    if (!players || players.length === 0) {
+      console.log(`[mixed-icon] No players for init=${t.initiative}, team=${t.teamTurn}`);
+      return;
+    }
+
+    console.log(`[mixed-icon] Found ${players.length} players in turn slot for init=${t.initiative}, team=${t.teamTurn}`);
+
+    const mixedIconId = `mixed-icon-${t.initiative}-${t.teamTurn}`;
+    const container = GoA.$(mixedIconId);
+    if (!container) {
+      console.log(`[mixed-icon] Container not found: ${mixedIconId}`);
+      return;
+    }
+
+    // Find the turn-row element for background updates
+    const turnRow = container.closest('.turn-row');
+    if (!turnRow) {
+      console.log(`[mixed-icon] Turn-row not found for ${mixedIconId}`);
+      return;
+    }
+
+    // Only cycle if slot has multiple characters
+    if (players.length <= 1) {
+      console.log(`[mixed-icon] Turn slot has ${players.length} characters, skipping cycle`);
+      return;
+    }
+
+    console.log(`[mixed-icon] Starting cycle for ${mixedIconId} with ${players.length} icons`);
+
+    let currentIdx = 0;
+    const iconSrcs = players.map(p => getIcon(p.id));
+    const avatarSrcs = players.map(p => getAvatar(p.id));
+
+    // Start cycling every 2 seconds
+    const cycleKey = `${t.initiative}-${t.teamTurn}`;
+    GoA.mixedIconCycles[cycleKey] = setInterval(() => {
+      currentIdx = (currentIdx + 1) % iconSrcs.length;
+      const src = iconSrcs[currentIdx];
+      const bgSrc = avatarSrcs[currentIdx];
+      container.innerHTML = `<img class="char-icon" src="${src}" alt="" onerror="this.src='${PLACEHOLDER}'">`;
+      if (bgSrc) {
+        turnRow.style.setProperty('--avatar-url', `url('${bgSrc}')`);
+      }
+    }, 2000);
+  });
 };
 
 // ── Offline Setup Renderer ─────────────────────────────────────────────────

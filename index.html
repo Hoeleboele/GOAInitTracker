@@ -122,12 +122,14 @@
       <!-- Initiative Input -->
       <div id="viewInitiative" class="view" style="display:none;">
         <div id="initiativeCharBanner" class="initiative-char-banner" style="display:none;">
+          <div class="char-quote-top">
+            <span id="initiativeCharQuote" class="char-banner-quote"></span>
+          </div>
           <img id="initiativeCharImg" src="" alt="" />
           <div class="char-banner-overlay">
             <span id="initiativeCharName"></span>
             <span id="initiativeCharSubtitle" class="char-banner-subtitle"></span>
             <span id="initiativeCharAbility" class="char-banner-ability"></span>
-            <span id="initiativeCharQuote" class="char-banner-quote"></span>
           </div>
         </div>
         <h2 class="phase-title" id="initiativePhaseTitle">Set Initiative</h2>
@@ -136,7 +138,7 @@
         <div class="initiative-input-wrapper">
           <div id="initiativeDisplay" class="number-display">Enter initiative</div>
           <input type="password" id="initiativePasswordField" class="initiative-password-field" readonly />
-          <button id="btnToggleInitiativeVis" class="btn-toggle-visibility" title="Hold to reveal numbers">👁</button>
+          <button id="btnToggleInitiativeVis" class="btn-toggle-visibility" title="Toggle initiative visibility">👁</button>
         </div>
 
         <div class="number-pad">
@@ -154,7 +156,10 @@
         </div>
 
         <div class="pad-actions">
-          <button class="btn btn-primary btn-large" id="btnLock">Lock In ✓</button>
+          <div class="lock-btn-row">
+            <div class="char-icon-col"><img class="char-icon" id="lockBtnIcon" src="CharacterIcons/_placeholder.svg" alt=""></div>
+            <button class="btn btn-primary btn-large" id="btnLock">Lock In ✓</button>
+          </div>
           <button class="btn btn-secondary btn-large" id="btnEdit" style="display:none;">Edit</button>
           <p id="lockStatus" class="hint"></p>
         </div>

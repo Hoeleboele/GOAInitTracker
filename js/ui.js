@@ -123,6 +123,8 @@ GoA.applyCharacterTheme = function() {
     return;
   }
   GoA.$('initiativeCharImg').src = GoA.charAvatarPath(c.id);
+  const lockIcon = GoA.$('lockBtnIcon');
+  if (lockIcon) lockIcon.src = GoA.charIconPath(c.id);
   GoA.$('initiativeCharName').textContent = (c.special ? c.special + ' ' : '') + c.name;
   const subtitle = GoA.$('initiativeCharSubtitle');
   if (subtitle) {
@@ -134,10 +136,13 @@ GoA.applyCharacterTheme = function() {
     ability.style.display = abilityText ? '' : 'none';
   }
   const quote = GoA.$('initiativeCharQuote');
-  if (quote && !quote.textContent) {
-    const pool = c.quotes && c.quotes.length ? c.quotes : [];
-    const picked = pool[Math.floor(Math.random() * pool.length)] || '';
-    quote.textContent = picked ? '"' + picked + '"' : '';
+  if (quote) {
+    // Only pick a new quote when entering the initiative phase
+    if (GoA.previousPhase !== 'initiative') {
+      const pool = GoA.CHARACTER_QUOTES[c.id] || [];
+      GoA.currentCharQuote = pool[Math.floor(Math.random() * pool.length)] || '';
+    }
+    quote.textContent = GoA.currentCharQuote ? '"' + GoA.currentCharQuote + '"' : '';
   }
   banner.style.display = 'block';
   view.classList.add('char-themed');

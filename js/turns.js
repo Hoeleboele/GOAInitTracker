@@ -10,11 +10,15 @@ GoA.updatePad = function() {
   const toggleBtn = GoA.$('btnToggleInitiativeVis');
   
   if (GoA.initValue) {
-    // Show password field with masked input, hide number display
-    pwdField.value = GoA.initValue;
+    // Show password field — masked with bullets or revealed
+    pwdField.value = GoA.initiativeShowPassword
+      ? GoA.initValue
+      : '●'.repeat(String(GoA.initValue).length);
+    pwdField.type = 'text';
     pwdField.style.display = 'block';
     displayEl.style.display = 'none';
-    toggleBtn.style.display = 'block';
+    toggleBtn.style.display = 'flex';
+    toggleBtn.classList.toggle('active', GoA.initiativeShowPassword);
   } else {
     // Show placeholder display, hide password field
     displayEl.textContent = 'Enter initiative';
@@ -31,6 +35,8 @@ GoA.resetInitPad = function() {
   GoA.initValue = '';
   GoA.initLocked = false;
   GoA.initiativeShowPassword = false;
+  var toggleBtn = GoA.$('btnToggleInitiativeVis');
+  if (toggleBtn) toggleBtn.classList.remove('active');
   document.querySelectorAll('.pad-btn').forEach(b => b.disabled = false);
   GoA.$('btnLock').style.display = 'block';
   GoA.$('btnEdit').style.display = 'none';

@@ -17,7 +17,7 @@ test('offline gameplay basic flow', async ({ page }) => {
     const el = document.getElementById('viewOfflineSetup');
     return el && el.style.display !== 'none';
   }, { timeout: 5000 });
-
+ 
   // Populate two offline players
   await page.evaluate(() => {
     if (GoA.offlinePlayers && GoA.offlinePlayers.length >= 2) {

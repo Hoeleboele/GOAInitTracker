@@ -48,6 +48,22 @@ GoA.charAvatarPath = function(id) {
   return 'avatars_full/' + (id === 'emmit' ? 'emmitt' : id) + '.webp';
 };
 
+// Mapping for icon filenames that differ from the default title-case of the character ID.
+// Add entries here as new icons arrive with non-standard names.
+GoA._iconNameMap = {
+  garrus:      'Garus',
+  emmit:       'Emmitt',
+  nebkher:     'NebKher',
+  silverarrow: 'SilverArrow',
+  widget:      'Widget and pyro'
+};
+
+GoA.charIconPath = function(id) {
+  if (!id) return 'CharacterIcons/_placeholder.svg';
+  var name = GoA._iconNameMap[id] || (id.charAt(0).toUpperCase() + id.slice(1));
+  return 'CharacterIcons/' + name + '.webp';
+};
+
 GoA.characterInGame = function(char) {
   return Object.values(GoA.state.players).some(p => p.character === char);
 };

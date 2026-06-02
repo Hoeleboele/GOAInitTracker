@@ -39,7 +39,9 @@ GoA.initiativeShowPassword = false;
 // ── Notification tracking ──────────────────────────────────────────────────
 GoA.lastNotifiedTurnIndex = -1;   // tracks last turn we fired the notification for
 GoA.usedAbilitiesThisTurn = new Set(); // abilities used this turn (each can only fire once)
-
+// ── Quote display state ────────────────────────────────────────────────────
+GoA.currentCharQuote = '';    // currently displayed quote (stays same until page re-entered)
+GoA.previousPhase = null;      // track phase transitions to detect initiative entry
 // ── Offline mode state ─────────────────────────────────────────────────────
 GoA.offlinePlayers = [];     // [{ id, name, team, initiative }]
 GoA.offlineInitIdx = 0;      // which player is currently entering initiative

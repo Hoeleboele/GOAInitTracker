@@ -289,31 +289,14 @@ GoA.$('btnEdit').addEventListener('click', () => {
 });
 
 // ── Initiative password toggle (eye icon) ─────────────────────────────────
-GoA.$('btnToggleInitiativeVis').addEventListener('pointerdown', () => {
-  GoA.initiativeShowPassword = true;
+GoA.$('btnToggleInitiativeVis').addEventListener('click', () => {
+  GoA.initiativeShowPassword = !GoA.initiativeShowPassword;
   const pwdField = GoA.$('initiativePasswordField');
-  const displayEl = GoA.$('initiativeDisplay');
-  // Update display with actual value before showing
-  displayEl.textContent = GoA.initValue;
-  displayEl.classList.remove('is-placeholder');
-  pwdField.style.display = 'none';
-  displayEl.style.display = 'block';
-});
-
-GoA.$('btnToggleInitiativeVis').addEventListener('pointerup', () => {
-  GoA.initiativeShowPassword = false;
-  const pwdField = GoA.$('initiativePasswordField');
-  const displayEl = GoA.$('initiativeDisplay');
-  pwdField.style.display = 'block';
-  displayEl.style.display = 'none';
-});
-
-GoA.$('btnToggleInitiativeVis').addEventListener('pointerleave', () => {
-  GoA.initiativeShowPassword = false;
-  const pwdField = GoA.$('initiativePasswordField');
-  const displayEl = GoA.$('initiativeDisplay');
-  pwdField.style.display = 'block';
-  displayEl.style.display = 'none';
+  const btn = GoA.$('btnToggleInitiativeVis');
+  pwdField.value = GoA.initiativeShowPassword
+    ? GoA.initValue
+    : '●'.repeat(String(GoA.initValue).length);
+  btn.classList.toggle('active', GoA.initiativeShowPassword);
 });
 
 // ── End turn / new round ───────────────────────────────────────────────────

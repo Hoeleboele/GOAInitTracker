@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" fill="none">
+  <!-- Shield outline -->
+  <path d="M50 8 L82 22 L82 52 C82 70 65 85 50 92 C35 85 18 70 18 52 L18 22 Z"
+        fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.18)" stroke-width="2.5"/>
+  <!-- Crossed swords -->
+  <line x1="34" y1="34" x2="66" y2="66" stroke="rgba(255,255,255,0.30)" stroke-width="4" stroke-linecap="round"/>
+  <line x1="66" y1="34" x2="34" y2="66" stroke="rgba(255,255,255,0.30)" stroke-width="4" stroke-linecap="round"/>
+</svg>
