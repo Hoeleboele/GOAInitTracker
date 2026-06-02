@@ -245,11 +245,11 @@ GoA.renderTurnList = function(containerId) {
         const activeHtml = t.teamTurn === 'blue' ? blueHtml : orangeHtml;
         const waitingHtml = t.teamTurn === 'blue' ? orangeHtml : blueHtml;
         const parts = [];
-        if (activeHtml) parts.push(activeHtml + ' <em>(any&nbsp;1)</em>');
+        if (activeHtml) parts.push(activeHtml);
         if (waitingHtml) parts.push(waitingHtml);
         names = parts.join(' <span class="tie-vs">vs</span> ');
       } else {
-        names = players.map(p => GoA.esc(p.name)).join(' / ') + ' <em>(any&nbsp;1)</em>';
+        names = players.map(p => GoA.esc(p.name)).join(' / ');
       }
     } else {
       names = players.map(p => GoA.esc(p.name)).join(' & ');
