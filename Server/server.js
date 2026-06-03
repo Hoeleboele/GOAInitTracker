@@ -608,11 +608,18 @@ io.on('connection', (socket) => {
           // If currently active slot includes them, mark them done so they won't block advancement
           const cur = gs.currentTurnIndex;
           const active = gs.turns[cur];
-          if (active && (active.players || []).some(p => p.id === targetId)) {
+          const wasActive = active && (active.players || []).some(p => p.id === targetId);
+          
+          if (active && wasActive) {
             if (!active.doneIds) active.doneIds = [];
             if (!active.doneIds.includes(targetId)) active.doneIds.push(targetId);
             // Remove from active slot's players list
             active.players = (active.players || []).filter(p => p.id !== targetId);
+            
+            // If we removed the active player and slot is now empty, advance to next turn
+            if (active.players.length === 0) {
+              advanceTurn(code);
+            }
           }
           
           broadcastState(code);

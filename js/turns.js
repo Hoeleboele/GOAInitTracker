@@ -317,7 +317,9 @@ GoA.killPlayerThisRound = function(targetId) {
   // If currently active slot includes them, mark them done so they won't block advancement
   const cur = GoA.state.currentTurnIndex;
   const active = GoA.state.turns[cur];
-  if (active && (active.players || []).some(p => p.id === targetId)) {
+  const wasActive = active && (active.players || []).some(p => p.id === targetId);
+  
+  if (active && wasActive) {
     if (!active.doneIds) active.doneIds = [];
     if (!active.doneIds.includes(targetId)) active.doneIds.push(targetId);
     // Remove from active slot's players list
@@ -355,6 +357,11 @@ GoA.killPlayerThisRound = function(targetId) {
         return;
       }
     }
+  }
+
+  // If we removed the active player, advance to the next turn
+  if (wasActive && active && active.players.length === 0) {
+    GoA.advanceTurn();
   }
 
   GoA.toast(`${GoA.esc(target.name)} removed from this round.`);
